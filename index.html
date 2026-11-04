@@ -7669,14 +7669,14 @@ function openArduino(){
  const num=(k,label)=>{const i=el("input",{type:"number",min:"0",max:"99",value:String(C[k])});fields[k]=i;return el("label",{class:"hwset"},label,i);};
  const options=ARDUINO_BOARDS.map(b=>el("option",{value:b.fqbn,selected:b.fqbn===C.fqbn},b.name+" · "+b.fqbn));if(!ARDUINO_BOARDS.some(b=>b.fqbn===C.fqbn))options.push(el("option",{value:C.fqbn,selected:true},"Другая плата · "+C.fqbn));
  const board=el("select",{},...options),fqbn=el("input",{type:"text",value:C.fqbn,placeholder:"например, esp32:esp32:esp32",spellcheck:"false"});board.onchange=()=>{fqbn.value=board.value;};
- const port=el("input",{type:"text",value:C.port,placeholder:"COM3 или /dev/cu.usbmodem…"}),cli=el("input",{type:"text",value:C.cli,placeholder:"автоматически или путь к arduino-cli"});
+ const port=el("input",{type:"text",value:C.port,placeholder:"COM3 или /dev/cu.usbmodem…"});
  const portList=el("datalist",{id:"arPorts"});port.setAttribute("list","arPorts");
- row("Плата и компилятор",[el("label",{class:"hwset"},"Плата",board),el("label",{class:"hwset"},"FQBN платы",fqbn),el("label",{class:"hwset"},"Порт загрузки",port,portList),el("label",{class:"hwset"},"Arduino CLI",cli)]);
+ row("Плата и компилятор",[el("label",{class:"hwset"},"Плата",board),el("label",{class:"hwset"},"FQBN платы",fqbn),el("label",{class:"hwset"},"Порт загрузки",port,portList)]);
  row("Драйверы моторов PWM + DIR",[num("lp","Левый PWM"),num("ld","Левый DIR"),num("rp","Правый PWM"),num("rd","Правый DIR"),num("ap","Клешня PWM"),num("ad","Клешня DIR"),num("up","Подъём PWM"),num("ud","Подъём DIR")]);
  row("Энкодеры, звук и датчики",[num("le","Энкодер левый"),num("re","Энкодер правый"),num("ae","Энкодер клешни"),num("ue","Энкодер подъёма"),num("cpr","Импульсов на оборот"),num("buzz","Зуммер"),num("trig","HC-SR04 TRIG"),num("echo","HC-SR04 ECHO"),num("touch","Касание (0 — нет)")]);
  row("Боковые ультразвуковые HC-SR04 (0 — не подключён)",[num("ltrig","Слева TRIG"),num("lecho","Слева ECHO"),num("rtrig","Справа TRIG"),num("recho","Справа ECHO")]);
- box.append(el("p",{class:"hint"},"Если поддержки платы ещё нет, нажмите «Установить поддержку платы». 0 отключает необязательный датчик. Для точных поворотов нужны энкодеры и верное число импульсов на оборот. На ESP32 и других платах 3,3 В обязательно используйте делитель напряжения на ECHO датчика HC-SR04."));
- const save=()=>{for(const k in fields)C[k]=arNum(fields[k].value);C.cpr=Math.max(1,+fields.cpr.value||20);C.fqbn=fqbn.value.trim()||board.value;C.port=port.value.trim();C.cli=cli.value.trim();arSave(C);};
+ box.append(el("p",{class:"hint"},"Если поддержки платы ещё нет, нажмите «Установить поддержку платы». 0 отключает необязательный датчик. Для точных поворотов нужны энкодеры и верное число импульсов на оборот. На ESP32 и других платах 3,3 В обязательно используйте делитель напряжения на ECHO датчика HC-SR04. В настольном приложении используется встроенный Arduino CLI."));
+ const save=()=>{for(const k in fields)C[k]=arNum(fields[k].value);C.cpr=Math.max(1,+fields.cpr.value||20);C.fqbn=fqbn.value.trim()||board.value;C.port=port.value.trim();arSave(C);};
  const run=async action=>{save();const program=action==="program"||action==="programUpload",upload=action==="upload"||action==="programUpload",cliAction=action==="program"?"compile":action==="programUpload"?"upload":action;
   if(!desktop){setM("Компиляция доступна в приложении для macOS/Windows. Здесь скачайте .ino и откройте его в Arduino IDE.","bad");return;}if(!C.port&&upload){setM("Укажите порт платы.","bad");return;}
   out.value="";setM(action==="core"?"Установка поддержки платы…":upload?"Компиляция и загрузка программы…":"Компиляция…");box.querySelectorAll("button").forEach(b=>b.disabled=true);
@@ -9228,7 +9228,7 @@ async function profileShow(){const root=$("#profileRoot");if(!root)return;root.t
    field("Новый пароль",{name:"password",type:"password",autocomplete:"new-password",required:true}),field("Новый пароль ещё раз",{name:"password2",type:"password",autocomplete:"new-password",required:true}),
    el("button",{class:"btn sm",type:"submit"},"Сменить пароль")),pm=note("");pf.append(pm);
   pf.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(pf));if(d.password!==d.password2){pm.textContent="Новые пароли не совпадают.";pm.className="msg bad";return;}
-   try{await api("password",{body:d});pm.textContent="Пароль изменён.";pm.className="msg ok";pf.reset();}catch(err){pm.textContent=err.message;pm.className="msg bad";}};
+   try{await api("password",{body:d});accSet(null,null);profileShow();setMsg("Пароль изменён. Все прежние сессии завершены — войдите с новым паролем.","ok");}catch(err){pm.textContent=err.message;pm.className="msg bad";}};
   root.append(el("details",{class:"cpphelp"},el("summary",{},"Сменить пароль"),pf));}
  const sols=el("div",{},note("Загрузка…")),maps=el("div",{},note("Загрузка…"));
  root.append(el("h2",{class:"mh"},"Сохранённые решения"),sols,el("h2",{class:"mh"},"Мои карты на сервере"),maps);
@@ -9248,9 +9248,9 @@ function openRc(o,title){S.pendingFile=()=>{try{rcOpen(o,title);}catch(e){setMsg
 // «Сохранить решение»: на сервер, если вошли; иначе — предложение войти
 async function saveSolution(){
  if(!ACC.user){setMsg("Чтобы сохранять решения, войдите в аккаунт на вкладке «Профиль»"+(BUILD==="site"?" (логин выдаёт учитель)":"")+". Без входа можно сохранить файл.","bad");return;}
- const t=S.task,o=rcPack("solution"),ok=!!(S.lastOk&&t&&S.lastOk.task===t.id);
+ const t=S.task,o=rcPack("solution"),review=typeof aiReviewCurrent==="function"&&aiReviewCurrent()?AI.review:null;
  const title=t?("Задача "+t.id+". "+t.t):((fieldDef(S.fid)||S.field).name||"Программа");
- try{await api("solutions",{body:{task_id:t?t.id:null,title,mode:S.mode,data:o,ok,points:ok?S.lastOk.pts:0}});setMsg("Решение «"+title+"» сохранено в профиле.","ok");}
+ try{const saved=await api("solutions",{body:{task_id:t?t.id:null,title,mode:S.mode,data:o,review_id:review?review.id:undefined}});setMsg("Решение «"+title+"» сохранено в профиле"+(saved.points?" с подтверждёнными баллами: "+saved.points:" без начисления баллов")+".","ok");}
  catch(e){setMsg("Не удалось сохранить: "+e.message,"bad");}}
 
 // ---------- карты на сервере ----------
@@ -9621,8 +9621,8 @@ function aiTaskPanel(bar){
    if(r.source==="code"&&r.points>0)panel.append(el("p",{class:"ai-note"},"Эта проверка разрешает запуск текущей неизменённой программы на подключённом роботе."));
   }
   if(AI.help){const h=AI.help;panel.append(el("div",{class:"ai-analogy"},el("b",{},"Сначала попробуйте похожую задачу"),h.hint?el("p",{},"Подсказка: "+h.hint):null,el("h3",{},h.analogy.title||"Задача по аналогии"),el("p",{},h.analogy.task),el("button",{class:"btn sm ghost",type:"button",disabled:AI.busy,onclick:runSolve},"Нет, не могу")));}
-  if(AI.solution){const s=AI.solution;panel.append(el("div",{class:"ai-analogy ai-solution"},el("b",{},"Решение · 0 баллов за эту задачу"),s.explanation?el("p",{},s.explanation):null,el("button",{class:"btn sm pri",type:"button",onclick:()=>assemble(s)},"Собрать решение в Blockly"),s.assembled?el("p",{class:"ai-note"},"Готовые блоки находятся в редакторе программы."):null,el("p",{class:"ai-note"},"Получить баллы можно, решив аналогичное задание.")));}
-  if(AI.solutions){const list=el("div",{class:"ai-analogy"},el("b",{},"Другие решения · 0 баллов за эту задачу"));AI.solutions.forEach((s,i)=>list.append(el("div",{class:"ai-solution"},el("b",{},"Вариант "+(i+1)),s.summary?el("p",{},s.summary):null,el("button",{class:"btn sm",type:"button",onclick:()=>assemble(s)},"Собрать вариант "+(i+1)+" в Blockly"),s.assembled?el("p",{class:"ai-note"},"Этот вариант собран в редакторе."):null)));panel.append(list);if(AI.solutions.length)panel.append(el("p",{class:"ai-note"},"Получить баллы можно, решив аналогичное задание."));}
+  if(AI.solution){const s=AI.solution;panel.append(el("div",{class:"ai-analogy ai-solution"},el("b",{},(s.difficulty_label||"Самое сложное")+" · 0 баллов за эту задачу"),s.explanation?el("p",{},s.explanation):null,el("button",{class:"btn sm pri",type:"button",onclick:()=>assemble(s)},"Собрать самое сложное решение в Blockly"),s.assembled?el("p",{class:"ai-note"},"Готовые блоки находятся в редакторе программы."):null,el("p",{class:"ai-note"},"Получить баллы можно, решив аналогичное задание.")));}
+  if(AI.solutions){const labels=["Чуть легче","Ещё легче","Самое лёгкое"],list=el("div",{class:"ai-analogy"},el("b",{},"Другие решения · от среднего к самому лёгкому · 0 баллов"));AI.solutions.forEach((s,i)=>{const level=s.difficulty_label||labels[i]||labels[labels.length-1];list.append(el("div",{class:"ai-solution"},el("b",{},"Вариант "+(i+1)+" · "+level),s.summary?el("p",{},s.summary):null,el("button",{class:"btn sm",type:"button",onclick:()=>assemble(s)},"Собрать: "+level),s.assembled?el("p",{class:"ai-note"},"Этот вариант собран в редакторе."):null));});panel.append(list);if(AI.solutions.length)panel.append(el("p",{class:"ai-note"},"Даже самый лёгкий вариант сохраняет циклы, условия и вычисления, обязательные по условию. Получить баллы можно, решив аналогичное задание."));}
  }
  function assemble(s){
   try{aiAssembleSolution(s.solution_program||s.solution||s.program);s.assembled=true;AI.error=null;}catch(e){AI.error=e.message;}render();
