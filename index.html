@@ -9450,18 +9450,18 @@ async function cabAI(box){
   field("API-адрес (Base URL)",{name:"base_url",type:"url",required:true,value:s.base_url||"https://api.apihost.one/v1",placeholder:"https://api.apihost.one/v1"}),
   field("Модель",{name:"model",required:true,value:s.model||"claude-fable-5",placeholder:"claude-fable-5"}),keyField,
   el("button",{class:"btn pri",type:"submit"},"Сохранить API-адрес и настройки"),msg,
-  el("p",{class:"hint"},"Чтобы заменить API, впишите новый адрес, например https://api.apihost.one/v1, укажите модель и сохраните. Запросы отправляются на /chat/completions, баланс запрашивается через /me. Настройки применяются сразу для сайта и ПК-приложений. Ключ никогда не показывается в браузере."));
+  el("p",{class:"hint"},"Чтобы заменить API, впишите новый адрес, например https://api.apihost.one/v1, укажите модель и сохраните. Запросы отправляются на /chat/completions, расход запрашивается через /me или /usage. Настройки применяются сразу для сайта и ПК-приложений. Ключ никогда не показывается в браузере."));
  const number=n=>Number.isFinite(n)?new Intl.NumberFormat("ru-RU").format(n):"—",stat=(n,l,k)=>el("div",{class:"stat"+(k?" "+k:"")},el("b",{},n),el("span",{},l));
  const usage=el("div",{},note("Загрузка баланса…")),refresh=el("button",{class:"btn sm ghost",type:"button"},"Обновить баланс");
  async function loadUsage(){refresh.disabled=true;usage.textContent="";usage.append(note("Загрузка баланса…"));
   const u=await api("ai/usage").catch(e=>({supported:false,error:e.message}));usage.textContent="";
-  if(u.supported)usage.append(el("div",{class:"stats"},stat(number(u.used),"израсходовано токенов"),stat(number(u.remaining),"осталось токенов","live"),stat(number(u.limit),"общий лимит")));
-  else usage.append(note(u.error||"Выбранный API не предоставляет баланс.","bad"));refresh.disabled=false;}
+  if(u.supported){usage.append(el("div",{class:"stats"},stat(number(u.used),"израсходовано токенов"),stat(number(u.remaining),"осталось токенов","live"),stat(number(u.limit),"общий лимит")));if(u.month)usage.append(el("p",{class:"hint"},"Данные за "+u.month+(Number.isFinite(u.requests)?" · запросов: "+number(u.requests):"")+"."));}
+  else usage.append(el("p",{class:"hint"},"Выбранный API не предоставляет баланс. На сохранение настроек и работу ИИ это не влияет. "+(u.error||"")));refresh.disabled=false;}
  refresh.onclick=loadUsage;
  f.onsubmit=async e=>{e.preventDefault();msg.textContent="Сохранение…";msg.className="msg";
   try{const d=Object.fromEntries(new FormData(f));await api("ai/config",{method:"PUT",body:d});keyField.querySelector("input").value="";msg.textContent="API-адрес и настройки ИИ сохранены и уже действуют.";msg.className="msg ok";if(typeof aiReset==="function")aiReset();loadUsage();}
   catch(err){msg.textContent=err.message;msg.className="msg bad";}};
- const tokens=el("section",{},el("div",{class:"bar"},el("h3",{},"Использование токенов"),refresh),usage,el("p",{class:"hint"},"Расход и остаток возвращает выбранный API-сервис."));
+ const tokens=el("section",{},el("div",{class:"bar"},el("h3",{},"Использование токенов"),refresh),usage,el("p",{class:"hint"},"Расход и остаток возвращает выбранный API-сервис. Для FreeLLMAPI используется месячная статистика /v1/usage."));
  box.append(el("div",{class:"ai-teacher"},el("b",{},s.available?"ИИ API настроен":"ИИ API требует настройки"),el("span",{class:"hint"},s.has_key?"Ключ сохранён":"Ключ не сохранён")),tokens,f);
  loadUsage();
 }
