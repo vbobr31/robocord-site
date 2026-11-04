@@ -9490,13 +9490,32 @@ function aiSolutionPayload(){
  const p=aiPayload("code");p.mode="blocks";if(S.mode!=="blocks")p.program="";return p;
 }
 function aiBlocksFromProgram(raw){
- const budget={left:180},wrap=b=>({block:b}),num=(v,min,max)=>{const n=Number(v);if(!Number.isFinite(n)||n<min||n>max)throw new Error("ИИ вернул недопустимое число в программе.");return n;};
+ const budget={left:180},wrap=b=>({block:b}),variables=new Map();
+ function variable(name){
+  if(!/^[A-Za-z_][A-Za-z0-9_]{0,23}$/.test(name||""))throw new Error("ИИ вернул недопустимое имя переменной.");
+  if(!variables.has(name))variables.set(name,"ai_"+name);return variables.get(name);
+ }
+ function expression(e,depth=0){
+  if(typeof e==="number"&&Number.isFinite(e))return J.n(e).block;
+  if(!e||typeof e!=="object"||depth>6)throw new Error("ИИ вернул неверное выражение.");
+  if(e.kind==="number"){const n=Number(e.value);if(!Number.isFinite(n)||Math.abs(n)>100000000)throw new Error("ИИ вернул недопустимое число.");return J.n(n).block;}
+  if(e.kind==="text")return J.b("text",{TEXT:String(e.value==null?"":e.value).slice(0,160)});
+  if(e.kind==="variable")return J.b("variables_get",{VAR:{id:variable(e.name)}});
+  if(e.kind==="math"&&["ADD","MINUS","MULTIPLY","DIVIDE","POWER"].includes(e.operator))return J.b("math_arithmetic",{OP:e.operator},{A:wrap(expression(e.left,depth+1)),B:wrap(expression(e.right,depth+1))});
+  if(e.kind==="modulo")return J.b("math_modulo",{},{DIVIDEND:wrap(expression(e.left,depth+1)),DIVISOR:wrap(expression(e.right,depth+1))});
+  if(e.kind==="round"&&["ROUND","FLOOR","CEIL"].includes(e.mode||"ROUND"))return J.b("math_round",{OP:e.mode||"ROUND"},{NUM:wrap(expression(e.value,depth+1))});
+  if(e.kind==="sensor"){
+   const sensors={distance:()=>J.b("rs_dist"),sideDistance:()=>J.b("rs_side_dist",{SIDE:e.side==="L"?"L":"R"}),light:()=>J.b("rs_light",{S:["cL","cR","cC"].includes(e.colorSensor)?e.colorSensor:"cL"}),gyro:()=>J.b("rs_gyro"),path:()=>J.b("rs_enc"),timer:()=>J.b("rs_timer")};
+   if(!sensors[e.sensor])throw new Error("ИИ вернул неизвестный датчик.");return sensors[e.sensor]();
+  }
+  throw new Error("ИИ вернул неподдерживаемое выражение.");
+ }
  function condition(c,depth=0){
   if(!c||typeof c!=="object"||depth>5)throw new Error("ИИ вернул неверное условие.");
   if(c.kind==="compare"){
-   const sensors={distance:()=>J.dist(),sideDistance:()=>wrap(J.b("rs_side_dist",{SIDE:c.side==="L"?"L":"R"})),light:()=>wrap(J.b("rs_light",{S:["cL","cR","cC"].includes(c.colorSensor)?c.colorSensor:"cL"})),gyro:()=>wrap(J.b("rs_gyro")),path:()=>wrap(J.b("rs_enc")),timer:()=>wrap(J.b("rs_timer"))};
-   if(!sensors[c.sensor]||!["LT","LTE","GT","GTE","EQ","NEQ"].includes(c.operator))throw new Error("ИИ вернул неизвестное сравнение.");
-   return J.b("logic_compare",{OP:c.operator},{A:sensors[c.sensor](),B:J.n(num(c.value,-100000,100000))});
+   if(!["LT","LTE","GT","GTE","EQ","NEQ"].includes(c.operator))throw new Error("ИИ вернул неизвестное сравнение.");
+   const left=c.left||{kind:"sensor",sensor:c.sensor,side:c.side,colorSensor:c.colorSensor},right=c.right!==undefined?c.right:c.value;
+   return J.b("logic_compare",{OP:c.operator},{A:wrap(expression(left)),B:wrap(expression(right))});
   }
   if(c.kind==="color"&&["cL","cR","cC"].includes(c.sensor)&&["black","white","red","green","blue","yellow"].includes(c.color))return J.colorIs(c.sensor,c.color);
   if(c.kind==="touch")return c.value===false?J.b("logic_negate",{},{BOOL:wrap(J.b("rs_touch"))}):J.b("rs_touch");
@@ -9511,27 +9530,31 @@ function aiBlocksFromProgram(raw){
   for(const x of items){
    if(!x||typeof x!=="object"||budget.left--<=0)throw new Error("Программа ИИ превышает допустимый размер.");let b=null;
    const body=(key="body")=>J.seq(list(x[key]||[],depth+1));
-   if(x.op==="setSpeed")b=J.speed(num(x.value,1,100));
-   else if(x.op==="drive"&&["F","B"].includes(x.direction)&&["CM","ROT","SEC"].includes(x.unit)&&["BOTH","L","R"].includes(x.motor||"BOTH"))b=J.b("rs_drive",{DIR:x.direction,UNIT:x.unit,MOTOR:x.motor||"BOTH"},{VAL:J.n(num(x.value,0,100000))});
-   else if(x.op==="turn"&&["R","L"].includes(x.direction))b=J.turn(x.direction,num(x.value,0,36000));
-   else if(x.op==="tank")b=J.tank(num(x.left,-100,100),num(x.right,-100,100));
+   if(x.op==="setSpeed")b=J.b("rs_speed",{},{SPD:wrap(expression(x.value))});
+   else if(x.op==="drive"&&["F","B"].includes(x.direction)&&["CM","ROT","SEC"].includes(x.unit)&&["BOTH","L","R"].includes(x.motor||"BOTH"))b=J.b("rs_drive",{DIR:x.direction,UNIT:x.unit,MOTOR:x.motor||"BOTH"},{VAL:wrap(expression(x.value))});
+   else if(x.op==="turn"&&["R","L"].includes(x.direction))b=J.b("rs_turn",{DIR:x.direction},{DEG:wrap(expression(x.value))});
+   else if(x.op==="tank")b=J.b("rs_tank",{},{L:wrap(expression(x.left)),R:wrap(expression(x.right))});
    else if(x.op==="stop")b=J.stop();
-   else if(x.op==="wait")b=J.wait(num(x.value,0,60));
-   else if(x.op==="repeat")b=J.repeat(Math.round(num(x.times,1,1000)),body());
+   else if(x.op==="wait")b=J.b("rs_wait",{},{SEC:wrap(expression(x.value))});
+   else if(x.op==="repeat")b=J.b("controls_repeat_ext",{},{TIMES:wrap(expression(x.times)),DO:{block:body()}});
    else if(x.op==="forever")b=J.forever(body());
+   else if(x.op==="for")b=J.b("controls_for",{VAR:{id:variable(x.variable)}},{FROM:wrap(expression(x.from===undefined?1:x.from)),TO:wrap(expression(x.to)),BY:wrap(expression(x.by===undefined?1:x.by)),DO:{block:body()}});
    else if(x.op==="while"&&["WHILE","UNTIL"].includes(x.mode))b=J.b("controls_whileUntil",{MODE:x.mode},{BOOL:wrap(condition(x.condition)),DO:{block:body()}});
    else if(x.op==="if"){const then=body("then"),otherwise=J.seq(list(x.else||[],depth+1));b=J.ifelse(condition(x.condition),then,otherwise);}
    else if(x.op==="waitUntil")b=J.waitUntil(condition(x.condition));
+   else if(x.op==="setVar")b=J.b("variables_set",{VAR:{id:variable(x.variable)}},{VALUE:wrap(expression(x.value))});
+   else if(x.op==="changeVar")b=J.b("math_change",{VAR:{id:variable(x.variable)}},{DELTA:wrap(expression(x.value===undefined?1:x.value))});
+   else if(x.op==="say")b=J.b("rs_say",{},{TEXT:wrap(expression(x.value))});
    else if(x.op==="frontDrive")b=J.b("rs_front_drive",{WALL:x.wall===true?"YES":"NO"});
    else if(x.op==="sideDrive"&&["L","R"].includes(x.side))b=J.b("rs_side_drive",{SIDE:x.side,WALL:x.wall===false?"NO":"YES"});
    else if(x.op==="claw"&&["OPEN","CLOSE"].includes(x.state))b=J.claw(x.state);
-   else if(x.op==="lift"&&["UP","DOWN"].includes(x.direction)&&["DEG","ROT"].includes(x.unit||"DEG"))b=J.b("rs_lift_turn",{DIR:x.direction,UNIT:x.unit||"DEG"},{VAL:J.n(num(x.value,0,36000))});
-   else if(x.op==="clawTurn"&&["ARM","LIFT"].includes(x.motor)&&["DEG","ROT"].includes(x.unit||"DEG"))b=J.b("rs_claw_turn",{MOTOR:x.motor,UNIT:x.unit||"DEG"},{VAL:J.n(num(x.value,-36000,36000))});
+   else if(x.op==="lift"&&["UP","DOWN"].includes(x.direction)&&["DEG","ROT"].includes(x.unit||"DEG"))b=J.b("rs_lift_turn",{DIR:x.direction,UNIT:x.unit||"DEG"},{VAL:wrap(expression(x.value))});
+   else if(x.op==="clawTurn"&&["ARM","LIFT"].includes(x.motor)&&["DEG","ROT"].includes(x.unit||"DEG"))b=J.b("rs_claw_turn",{MOTOR:x.motor,UNIT:x.unit||"DEG"},{VAL:wrap(expression(x.value))});
    if(!b)throw new Error("ИИ вернул неизвестную Blockly-команду.");out.push(b);
   }
   return out;
  }
- const commands=list(raw);if(!commands.length)throw new Error("ИИ не вернул команды для сборки блоков.");return prog(commands);
+ const commands=list(raw);if(!commands.length)throw new Error("ИИ не вернул команды для сборки блоков.");const workspace=prog(commands);workspace.variables=[...variables].map(([name,id])=>({id,name}));return workspace;
 }
 function aiBlocksFromText(source){
  const commands=[],number=s=>Number(String(s).replace(",","."));
