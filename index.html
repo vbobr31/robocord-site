@@ -8545,7 +8545,7 @@ function initBlockly(){
  const box=$("#blockly");if(S.ws)return;
  if(!window.Blockly){box.replaceChildren(el("div",{class:"empty",text:"Редактор блоков не загрузился. Проверьте подключение к интернету и обновите страницу."}));return;}
  try{defineBlocks();
-  S.ws=Blockly.inject(box,{toolbox:toolbox(),renderer:"zelos",theme:themeFor(),grid:{spacing:28,length:3,colour:isDark()?"#25393B":"#D3DCD6",snap:true},zoom:{controls:false,wheel:false,pinch:true,startScale:innerWidth<760?.72:.9,maxScale:1.6,minScale:.45,scaleSpeed:1.15},trashcan:false,sounds:false,move:{scrollbars:true,drag:true,wheel:true},media:"https://cdn.jsdelivr.net/npm/blockly@10.4.3/media/"});
+  S.ws=Blockly.inject(box,{toolbox:toolbox(),renderer:"zelos",theme:themeFor(),grid:{spacing:28,length:3,colour:"transparent",snap:true},zoom:{controls:false,wheel:false,pinch:true,startScale:innerWidth<760?.72:.9,maxScale:1.6,minScale:.45,scaleSpeed:1.15},trashcan:false,sounds:false,move:{scrollbars:true,drag:true,wheel:true},media:"https://cdn.jsdelivr.net/npm/blockly@10.4.3/media/"});
   S.blkOk=true;
   const saved=lsGet("rs-ws2",null);if(!(saved&&loadWs(saved)))loadWs(prog([]));
   S.ws.addChangeListener(e=>{if(e.isUiEvent)return;saveWs();});
@@ -9455,7 +9455,7 @@ async function cabAI(box){
  const usage=el("div",{},note("Загрузка баланса…")),refresh=el("button",{class:"btn sm ghost",type:"button"},"Обновить баланс");
  async function loadUsage(){refresh.disabled=true;usage.textContent="";usage.append(note("Загрузка баланса…"));
   const u=await api("ai/usage").catch(e=>({supported:false,error:e.message}));usage.textContent="";
-  if(u.supported){usage.append(el("div",{class:"stats"},stat(number(u.used),"израсходовано токенов"),stat(number(u.remaining),"осталось токенов","live"),stat(number(u.limit),"общий лимит")));if(u.month)usage.append(el("p",{class:"hint"},"Данные за "+u.month+(Number.isFinite(u.requests)?" · запросов: "+number(u.requests):"")+"."));}
+  if(u.supported){usage.append(el("div",{class:"stats"},stat(number(u.used),"израсходовано токенов"),stat(Number.isFinite(u.remaining)?number(u.remaining):"не задан","осталось токенов","live"),stat(Number.isFinite(u.limit)?number(u.limit):"не задан","общий лимит")));if(u.month)usage.append(el("p",{class:"hint"},"Данные за "+u.month+(Number.isFinite(u.requests)?" · запросов: "+number(u.requests):"")+"."));if(!Number.isFinite(u.remaining))usage.append(el("p",{class:"hint"},"FreeLLMAPI показывает расход, но месячный лимит для этого ключа не задан, поэтому остаток вычислить нельзя."));}
   else usage.append(el("p",{class:"hint"},"Выбранный API не предоставляет баланс. На сохранение настроек и работу ИИ это не влияет. "+(u.error||"")));refresh.disabled=false;}
  refresh.onclick=loadUsage;
  f.onsubmit=async e=>{e.preventDefault();msg.textContent="Сохранение…";msg.className="msg";
