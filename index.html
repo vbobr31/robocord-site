@@ -9569,14 +9569,28 @@ async function cabSite(box){const s=await api("settings");
  const msg=note("");f.append(msg);
  f.onsubmit=async e=>{e.preventDefault();await api("settings",{method:"PUT",body:Object.fromEntries(new FormData(f))});msg.textContent="Сохранено.";msg.className="msg ok";footerShow();};
  box.append(f);}
+// Провайдеры ИИ по порядку: сервер пробует первого, при лимите или сбое — следующего, последним — Cloudflare Workers AI.
+const AI_PRESETS=[["Groq","https://api.groq.com/openai/v1","openai/gpt-oss-120b"],["OpenRouter","https://openrouter.ai/api/v1","meta-llama/llama-3.3-70b-instruct:free"],["Google Gemini","https://generativelanguage.googleapis.com/v1beta/openai","gemini-2.5-flash"],["Mistral","https://api.mistral.ai/v1","mistral-small-latest"],["Cerebras","https://api.cerebras.ai/v1","llama-3.3-70b"]];
 async function cabAI(box){
  const s=await api("ai/config"),msg=note("");
- const keyField=field(s.has_key?"Новый API-ключ (оставьте пустым, чтобы сохранить текущий)":"API-ключ",{name:"api_key",type:"password",autocomplete:"off",placeholder:s.has_key?"Ключ сохранён на сервере":"sk-…"});
- const f=el("form",{class:"authf wide"},el("h3",{},"OpenAI-совместимый API"),
-  field("API-адрес (Base URL)",{name:"base_url",type:"url",required:true,value:s.base_url||"https://api.apihost.one/v1",placeholder:"https://api.apihost.one/v1"}),
-  field("Модель",{name:"model",required:true,value:s.model||"claude-fable-5",placeholder:"claude-fable-5"}),keyField,
-  el("button",{class:"btn pri",type:"submit"},"Сохранить API-адрес и настройки"),msg,
-  el("p",{class:"hint"},"Чтобы заменить API, впишите новый адрес, например https://api.apihost.one/v1, укажите модель и сохраните. Запросы отправляются на /chat/completions, расход запрашивается через /me или /usage. Настройки применяются сразу для сайта и ПК-приложений. Ключ никогда не показывается в браузере."));
+ const rows=(s.providers&&s.providers.length?s.providers:[]).map((p,i)=>({base_url:p.base_url,model:p.model,has_key:p.has_key,keep:i,api_key:""}));
+ const list=el("div",{class:"ai-providers"});
+ const draw=()=>{list.textContent="";
+  rows.forEach((r,i)=>{const inp=(lab,k,attrs)=>{const f=field(lab,Object.assign({value:r[k]||"",autocomplete:"off"},attrs));f.querySelector("input").oninput=e=>{r[k]=e.target.value;};return f;};
+   list.append(el("fieldset",{class:"authf wide"},el("legend",{},(i+1)+". "+((AI_PRESETS.find(x=>x[1]===r.base_url)||[])[0]||"Провайдер")+(i===0?" — основной":" — запасной")),
+    inp("API-адрес (Base URL)","base_url",{type:"url",required:true,placeholder:"https://api.groq.com/openai/v1"}),
+    inp("Модель","model",{required:true}),
+    inp(r.has_key?"Новый ключ (пусто — оставить сохранённый)":"API-ключ","api_key",{type:"password",placeholder:r.has_key?"Ключ сохранён на сервере":"ключ провайдера"}),
+    el("div",{class:"bar"},
+     i>0?el("button",{class:"btn sm ghost",type:"button",onclick:()=>{rows.splice(i-1,0,rows.splice(i,1)[0]);draw();}},"Выше"):null,
+     el("button",{class:"btn sm ghost",type:"button",onclick:()=>{rows.splice(i,1);draw();}},"Удалить"))));});
+  if(!rows.length)list.append(note("Провайдеров нет. ИИ будет работать только через бесплатный Cloudflare Workers AI, если он подключён."));};
+ const add=el("div",{class:"bar"},el("b",{},"Добавить:"),...AI_PRESETS.map(([n,u,m])=>el("button",{class:"btn sm",type:"button",onclick:()=>{if(rows.length>=6){msg.textContent="Не больше 6 провайдеров.";msg.className="msg bad";return;}rows.push({base_url:u,model:m,has_key:false,keep:null,api_key:""});draw();}},n)),
+  el("button",{class:"btn sm ghost",type:"button",onclick:()=>{if(rows.length<6){rows.push({base_url:"",model:"",has_key:false,keep:null,api_key:""});draw();}}},"Другой"));
+ const f=el("form",{class:"authf wide"},el("h3",{},"Провайдеры ИИ · автовыбор"),
+  el("p",{class:"hint"},"Сервер обращается к провайдерам по порядку: если основной упёрся в лимит, не отвечает или вернул неверный ответ, запрос сам уходит следующему. "+(s.workers_ai?"Последний запасной — бесплатный Cloudflare Workers AI, ему ключ не нужен.":"Cloudflare Workers AI не подключён к серверу.")+" Ключи хранятся на сервере в зашифрованном виде и в браузер не возвращаются."),
+  list,add,el("button",{class:"btn pri",type:"submit"},"Сохранить провайдеров"),msg);
+ draw();
  const number=n=>Number.isFinite(n)?new Intl.NumberFormat("ru-RU").format(n):"—",stat=(n,l,k)=>el("div",{class:"stat"+(k?" "+k:"")},el("b",{},n),el("span",{},l));
  const usage=el("div",{},note("Загрузка баланса…")),refresh=el("button",{class:"btn sm ghost",type:"button"},"Обновить баланс");
  async function loadUsage(){refresh.disabled=true;usage.textContent="";usage.append(note("Загрузка баланса…"));
@@ -9585,10 +9599,12 @@ async function cabAI(box){
   else usage.append(el("p",{class:"hint"},"Выбранный API не предоставляет баланс. На сохранение настроек и работу ИИ это не влияет. "+(u.error||"")));refresh.disabled=false;}
  refresh.onclick=loadUsage;
  f.onsubmit=async e=>{e.preventDefault();msg.textContent="Сохранение…";msg.className="msg";
-  try{const d=Object.fromEntries(new FormData(f));await api("ai/config",{method:"PUT",body:d});keyField.querySelector("input").value="";msg.textContent="API-адрес и настройки ИИ сохранены и уже действуют.";msg.className="msg ok";if(typeof aiReset==="function")aiReset();loadUsage();}
+  try{const r=await api("ai/config",{method:"PUT",body:{providers:rows.map(x=>({base_url:x.base_url.trim(),model:x.model.trim(),api_key:x.api_key,keep:x.keep}))}});
+   rows.splice(0,rows.length,...r.providers.map((p,i)=>({base_url:p.base_url,model:p.model,has_key:p.has_key,keep:i,api_key:""})));draw();
+   msg.textContent="Провайдеры сохранены и уже действуют.";msg.className="msg ok";if(typeof aiReset==="function")aiReset();loadUsage();}
   catch(err){msg.textContent=err.message;msg.className="msg bad";}};
  const tokens=el("section",{},el("div",{class:"bar"},el("h3",{},"Использование токенов"),refresh),usage,el("p",{class:"hint"},"Расход и остаток возвращает выбранный API-сервис. Для FreeLLMAPI используется месячная статистика /v1/usage."));
- box.append(el("div",{class:"ai-teacher"},el("b",{},s.available?"ИИ API настроен":"ИИ API требует настройки"),el("span",{class:"hint"},s.has_key?"Ключ сохранён":"Ключ не сохранён")),tokens,f);
+ box.append(el("div",{class:"ai-teacher"},el("b",{},s.available?"ИИ API настроен":"ИИ API требует настройки"),el("span",{class:"hint"},(s.providers||[]).filter(p=>p.has_key).length+" провайдеров с ключом"+(s.workers_ai?" + Workers AI":""))),tokens,f);
  loadUsage();
 }
 // ===== ограниченный ИИ-помощник: фиксированные действия без свободного чата =====
