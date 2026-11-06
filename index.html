@@ -7066,7 +7066,7 @@ HW.adapters.lwp3={name:"LEGO Technic Hub / City Hub / BOOST (Bluetooth)",hint:"�
  SV:"00001623-1212-efde-1623-785feabcd123",CH:"00001624-1212-efde-1623-785feabcd123",
  async connect(){
   if(!navigator.bluetooth)throw new Error("Web Bluetooth недоступен в этом окне.");
-  const dev=await navigator.bluetooth.requestDevice({filters:[{services:[this.SV]}],optionalServices:[this.SV]});this.dev=dev;
+  const dev=this.pre||await navigator.bluetooth.requestDevice({filters:[{services:[this.SV]}],optionalServices:[this.SV]});this.pre=null;this.dev=dev;
   const srv=await dev.gatt.connect(),svc=await srv.getPrimaryService(this.SV);this.ch=await svc.getCharacteristic(this.CH);
   this.pos={0:0,1:0};
   await this.ch.startNotifications();
@@ -7081,7 +7081,28 @@ HW.adapters.lwp3={name:"LEGO Technic Hub / City Hub / BOOST (Bluetooth)",hint:"�
  async stop(){try{await this.motors(0,0);}catch(e){}},
  async close(){await this.stop();try{this.dev.gatt.disconnect();}catch(e){}}
 };
-HW.adapters.wedo=Object.assign(Object.create(HW.adapters.lwp3),{name:"LEGO Education WeDo 2.0 (Bluetooth)",hint:"Два мотора: A — левый, B — правый. Датчики наклона и движения WeDo этим подключением пока не читаются; гироскопа нет. Автоматического USB-подключения нет.",noGyro:true});
+// ---------- АДАПТЕР: LEGO Education WeDo 2.0 (Smart Hub «LPF2 Smart Hub 2 I/O»), свой протокол, не LWP3 ----------
+// Команды пишутся в характеристику Output Command: [порт, 1, 1, мощность −100…100]; порт 1 — A, 2 — B.
+// У моторов WeDo нет датчика вращения, поэтому угол колеса оценивается по мощности и времени (WEDO_DPS при 100 %).
+const WEDO_DPS=1000;
+HW.adapters.wedo={name:"LEGO Education WeDo 2.0 (Bluetooth)",hint:"Два мотора: порт A — левый, B — правый. У моторов WeDo нет датчика вращения — путь и повороты оцениваются по времени, поэтому подберите «Минимальную мощность» и проверьте расстояние на столе.",noGyro:true,
+ SV:"00001523-1212-efde-1523-785feabcd123",IO:"00004f0e-1212-efde-1523-785feabcd123",OUT:"00001565-1212-efde-1523-785feabcd123",
+ async connect(){
+  if(!navigator.bluetooth)throw new Error("Web Bluetooth недоступен в этом окне.");
+  const dev=this.pre||await navigator.bluetooth.requestDevice({filters:[{services:[this.SV]},{namePrefix:"LPF2 Smart Hub"}],optionalServices:[this.SV,this.IO]});this.pre=null;this.dev=dev;
+  const srv=await dev.gatt.connect(),io=await srv.getPrimaryService(this.IO);this.out=await io.getCharacteristic(this.OUT);
+  this.pw={1:0,2:0};this.deg={1:0,2:0};this.tPrev=performance.now();
+ },
+ async send(a){const v=Uint8Array.from(a);if(this.out.writeValueWithoutResponse)await this.out.writeValueWithoutResponse(v);else await this.out.writeValue(v);},
+ // путь колёс: интегрируем текущую мощность по времени
+ step(){const now=performance.now(),dt=(now-this.tPrev)/1000;this.tPrev=now;for(const p of [1,2])this.deg[p]+=this.pw[p]/100*WEDO_DPS*dt;},
+ async motors(l,r){this.step();const f=v=>Math.max(-100,Math.min(100,Math.round(v)));this.pw={1:f(l),2:f(r)};
+  await this.send([1,1,1,this.pw[1]&255]);await this.send([2,1,1,this.pw[2]&255]);},
+ async tone(hz,ms){hz=Math.max(20,Math.min(20000,Math.round(hz)));ms=Math.max(1,Math.min(65535,Math.round(ms)));await this.send([5,2,4,hz&255,hz>>8,ms&255,ms>>8]);},
+ async read(){await sleep(20);this.step();return {tl:this.deg[1],tr:this.deg[2],touch:null,refl:null,color:null,reflR:null,colorR:null,gyro:null,dist:null,distL:null,distR:null};},
+ async stop(){try{await this.motors(0,0);}catch(e){}},
+ async close(){await this.stop();try{this.dev.gatt.disconnect();}catch(e){}}
+};
 
 // ---------- VEX V5 / IQ2 / IQ1: подключение в один клик ----------
 // Как у EV3: нажали «Подключить» — приложение само загружает на Brain программу-мост (bridge/bridge.cpp, уже собрана
@@ -7160,8 +7181,8 @@ function makeVex(model,tr){return {kit:model,tr,name:KITS[model].name+(tr==="ble
   if(tr==="ble"){
    if(!navigator.bluetooth)throw new Error("Bluetooth недоступен в этом окне.");
    ui.say("Включите Brain и выберите его в списке Bluetooth…");
-   const B=VEX.ble;this.dev=await navigator.bluetooth.requestDevice({filters:[{services:[B.svc]},{namePrefix:"VEX"},{namePrefix:"IQ"}],optionalServices:[B.svc]});
-   const srv=await this.dev.gatt.connect(),svc=await srv.getPrimaryService(B.svc);
+   const B=VEX.ble;this.dev=this.pre||await navigator.bluetooth.requestDevice({filters:[{services:[B.svc]},{namePrefix:"VEX"},{namePrefix:"IQ"}],optionalServices:[B.svc]});
+   this.pre=null;const srv=await this.dev.gatt.connect(),svc=await srv.getPrimaryService(B.svc);
    const ch=async u=>svc.getCharacteristic(u);
    this.codeCh=await ch(B.code);
    this.sys=bleChan(await ch(B.sysTx),await ch(B.sysRx));this.user=bleChan(await ch(B.userTx),await ch(B.userRx));
@@ -7267,15 +7288,45 @@ HW.adapters.iq1=makeVex("iq1","usb");
 // Протокол: строки JSON. ПК → робот: {"m":[лев,прав]}, {"a":мощность}, {"u":мощность}, {"tone":[Гц,мс]}.
 // Робот → ПК: {"tl":градусы_лев,"tr":градусы_прав,"arm":°,"lift":°,"gyro":°,"refl":0-100,"color":"black|white|...","dist":см,"touch":0/1}
 HW.adapters.serial={name:"RoboCord / Arduino (USB)",hint:"Контроллер с прошивкой RoboCord (строки JSON, 115200). Настройка и загрузка прошивки — в разделе Arduino ниже.",ready:true,
- async connect(){
+ async connect(ui){
   if(!navigator.serial)throw new Error("Web Serial недоступен в этом окне.");
-  this.port=await navigator.serial.requestPort();await this.port.open({baudRate:115200});
+  this.port=this.pre||await navigator.serial.requestPort();this.pre=null;
+  if(await this.listen())return;
+  // Данных нет — на плате не прошивка RoboCord. В приложении загружаем её сами и подключаемся снова.
+  if(!(window.rcArduino&&window.rcArduino.request))throw new Error("Робот не присылает данные. Загрузите прошивку RoboCord через раздел Arduino и проверьте протокол.");
+  await this.release();await this.flash(ui);
+  if(ui)ui.say("Прошивка загружена, подключаюсь…");await sleep(1500);
+  if(!await this.listen())throw new Error("Прошивка загружена, но плата не отвечает. Проверьте пины в разделе Arduino и переподключите кабель.");
+ },
+ // Открыть порт и подождать строку JSON (плата перезагружается при открытии порта — до 5 с).
+ async listen(){
+  await this.port.open({baudRate:115200});
   this.w=this.port.writable.getWriter();this.buf="";this.last=null;this.enc=new TextEncoder();
   const rd=this.port.readable.getReader(),dec=new TextDecoder();
   (async()=>{try{for(;;){const{value,done}=await rd.read();if(done)break;this.buf+=dec.decode(value);let i;while((i=this.buf.indexOf("\n"))>=0){const ln=this.buf.slice(0,i).trim();this.buf=this.buf.slice(i+1);if(ln[0]==="{")try{this.last=JSON.parse(ln);}catch(e){}}}}catch(e){}})();
   this.rd=rd;this.g0=null;this.P={arm:1,lift:1};
   for(let i=0;i<50&&!this.last;i++)await sleep(100);
-  if(!this.last)throw new Error("Робот не присылает данные. Загрузите прошивку RoboCord через раздел Arduino и проверьте протокол.");
+  return !!this.last;
+ },
+ async release(){try{await this.rd.cancel();}catch(e){}try{this.w.releaseLock();}catch(e){}try{await this.port.close();}catch(e){}},
+ // Автозагрузка моста: порт и плата определяются через Arduino CLI по коду USB этой платы.
+ async flash(ui){
+  const C=arCfg(),info=this.port.getInfo(),hex=n=>"0x"+(n||0).toString(16).padStart(4,"0");
+  if(ui)ui.say("На плате нет прошивки RoboCord — ищу плату для загрузки…");
+  const L=await window.rcArduino.request({action:"list",config:C}),ports=L.ports||[];
+  const pick=ports.find(p=>p.vid===hex(info.usbVendorId)&&p.pid===hex(info.usbProductId))||(ports.length===1?ports[0]:null);
+  if(!pick)throw new Error("Не удалось определить порт платы для загрузки. Откройте раздел Arduino, выберите порт и нажмите «Загрузить мост».");
+  C.port=pick.address;if(pick.fqbn)C.fqbn=pick.fqbn;arSave(C);hwLog("автозагрузка моста: "+pick.label+" "+C.port+" "+C.fqbn);
+  const up=async()=>{if(ui)ui.say("Загружаю прошивку RoboCord на «"+pick.label+"»… Это займёт до минуты.");return window.rcArduino.request({action:"upload",config:C,source:arduinoSketch(C)});};
+  let r=await up();
+  // Arduino CLI отвечает на языке системы, поэтому проверяем и английский, и русский текст.
+  if(!r.ok&&/platform not installed|platform .* not found|package .* not installed|core install|платформа не установлена|не найдена/i.test(r.error+r.output)){
+   if(ui)ui.say("Устанавливаю поддержку платы (один раз, нужен интернет)…");
+   const c=await window.rcArduino.request({action:"core",config:C});if(c.ok)r=await up();}
+  // Китайские Nano на CH340 часто со старым загрузчиком.
+  if(!r.ok&&!pick.fqbn&&/not in sync|stk500/i.test(r.error+r.output)){C.fqbn="arduino:avr:nano:cpu=atmega328old";arSave(C);r=await up();}
+  if(!r.ok){hwLog(String(r.error||"").slice(-800));throw new Error("Прошивка не загрузилась: "+String(r.error||"ошибка Arduino CLI").trim().split("\n").slice(-2).join(" "));}
+  hwLog("мост загружен");
  },
  async send(o){await this.w.write(this.enc.encode(JSON.stringify(o)+"\n"));},
  async motors(l,r){await this.send({m:[Math.round(l),Math.round(r)]});},
@@ -7284,7 +7335,7 @@ HW.adapters.serial={name:"RoboCord / Arduino (USB)",hint:"Контроллер �
  async read(){await sleep(15);const x=this.last||{};if(this.g0===null)this.g0=x.gyro||0;
   return {tl:x.tl||0,tr:x.tr||0,arm:x.arm||0,lift:x.lift||0,touch:x.touch==null?null:!!x.touch,refl:x.refl==null?null:x.refl,color:x.color||null,gyro:x.gyro==null?null:x.gyro-this.g0,dist:x.dist==null?null:x.dist,distL:x.distL==null?null:x.distL,distR:x.distR==null?null:x.distR};},
  async stop(){try{await this.motors(0,0);await this.arm(0);await this.lift(0);}catch(e){}}, 
- async close(){await this.stop();try{this.rd.cancel();this.w.releaseLock();await this.port.close();}catch(e){}}
+ async close(){await this.stop();await this.release();}
 };
 
 // ---------- LEGO SPIKE Prime / Inventor: автоматическое USB-подключение через Pybricks raw REPL ----------
@@ -7463,21 +7514,23 @@ async function hwRun(S,gen,done){
 }
 
 // ---------- выбор устройства (Electron): список приходит из main.js, человек выбирает сам ----------
+if(typeof window!=="undefined"&&window.rcDevices&&window.rcDevices.onChooseClose)window.rcDevices.onChooseClose(id=>{const b=document.getElementById("devPick");if(b&&+b.dataset.req===id)b.remove();});
 if(typeof window!=="undefined"&&window.rcDevices)window.rcDevices.onChoose(req=>{
  let box=document.getElementById("devPick");
  const kind={serial:"USB / COM-порт",bluetooth:"Bluetooth",hid:"USB"}[req.kind]||req.kind;
  if(!box){box=el("div",{id:"devPick",class:"devpick"});document.body.append(box);}
- box.textContent="";
+ box.textContent="";box.dataset.req=String(req.id);
  const done=id=>{window.rcDevices.choose(req.id,id);box.remove();};
- box.append(el("b",{},"Выберите устройство · "+kind),
-  req.items.length?el("div",{class:"devlist"},...req.items.map(it=>el("button",{class:"btn sm",type:"button",onclick:()=>done(it.id)},it.name||it.id))):el("p",{class:"hint"},req.kind==="bluetooth"?"Ищу устройства… Включите робота.":"Устройства не найдены. Подключите кабель."),
-  el("button",{class:"btn sm ghost",type:"button",onclick:()=>done("")},"Отмена"));
+ box.append(...[el("b",{},"Выберите устройство · "+kind),
+  req.best&&req.items.length>1?el("button",{class:"btn sm pri",type:"button",onclick:()=>done(req.best)},"Определить автоматически"):null,
+  req.items.length?el("div",{class:"devlist"},...req.items.map(it=>el("button",{class:"btn sm",type:"button",onclick:()=>done(it.id)},it.name||it.id))):el("p",{class:"hint"},req.kind==="bluetooth"?"Ищу роботов… Включите робота и его Bluetooth.":"Устройства не найдены. Подключите кабель."),
+  el("button",{class:"btn sm ghost",type:"button",onclick:()=>done("")},"Отмена")].filter(Boolean));
  if(req.closed)box.remove();
 });
 
 // ---------- понятные сообщения об ошибках подключения ----------
 function hwErrText(e,a){const m=String(e&&e.message||e),n=e&&e.name;
- const bt=a&&(a.tr==="ble"||/Bluetooth/.test(a.name||""));
+ const bt=(e&&e.bt)||a&&(a.tr==="ble"||/Bluetooth/.test(a.name||""));
  if(n==="NotFoundError"||/No port selected|No device selected|User cancelled|canceled/i.test(m))
   return bt?"Робот не найден по Bluetooth. Включите робота, включите Bluetooth на компьютере и держите робота рядом."+(a&&/EV3/.test(a.name)?" EV3 сначала соедините с компьютером в настройках Bluetooth системы.":"")
    :"Робот не найден по USB. Проверьте: кабель вставлен в компьютер и в робота (кабель должен передавать данные, а не только заряжать), робот включён, VEXcode и другие программы для робота закрыты.";
@@ -7495,6 +7548,65 @@ const ROBOTS=[
  {id:"spike",name:"LEGO Education SPIKE Prime / Inventor",lives:[["spike","USB · автоматически"]],code:"spike",note:"Нужна прошивка Pybricks. Порт и служебную программу приложение настроит само — копировать код не нужно. Моторы A/B, датчики C/D/E/F."},
  {id:"spikeEssential",name:"LEGO Education SPIKE Essential",code:"spikeEssential",note:"Экспорт Python для Pybricks: два мотора A/B, встроенный IMU и таймер. Прямое USB-подключение из приложения не заявляется."},
  {id:"robocord",name:"RoboCord / Arduino",lives:[["serial","USB"]],arduino:true,note:"Контроллер с прошивкой RoboCord (USB, JSON, 115200). Для Arduino доступны настройка пинов, компиляция и загрузка."}];
+// ---------- автоподключение: модель набора определяется по коду USB или по имени Bluetooth ----------
+const VEX_PIDS={0x0501:"v5",0x0200:"iq2",0x0003:"iq1"};
+const LEGO_USB={0x0005:"LEGO MINDSTORMS EV3",0x0009:"LEGO Education SPIKE Prime",0x0010:"LEGO MINDSTORMS Robot Inventor"};
+const CHIP_MODELS={0x1a86:"Arduino-совместимая плата (CH340)",0x10c4:"ESP32 / ESP8266 (CP210x)",0x0403:"Arduino-совместимая плата (FTDI)",0x067b:"Плата на PL2303",0x303a:"ESP32",0x2e8a:"Raspberry Pi Pico",0x0483:"STM32"};
+// Для Arduino точную модель называет Arduino CLI (например, «Arduino Uno»).
+async function usbBoardName(info){const hex=n=>"0x"+(n||0).toString(16).padStart(4,"0");
+ if(window.rcArduino&&window.rcArduino.request)try{const r=await window.rcArduino.request({action:"list",config:arCfg()});
+  const p=(r.ports||[]).find(x=>x.vid===hex(info.usbVendorId)&&x.pid===hex(info.usbProductId));if(p&&p.fqbn)return p.label;}catch(e){}
+ return CHIP_MODELS[info.usbVendorId]||(info.usbVendorId===0x2341||info.usbVendorId===0x2a03?"Arduino":"Плата с прошивкой RoboCord");}
+function bleModel(name){const n=String(name||"");
+ if(/IQ/i.test(n))return ["iq2ble","VEX IQ (2-е поколение)"];
+ if(/VEX|V5/i.test(n))return ["v5ble","VEX V5"];
+ if(/Smart ?Hub|WeDo/i.test(n))return ["wedo","LEGO Education WeDo 2.0"];
+ if(/Technic/i.test(n))return ["lwp3","LEGO Technic Hub"];
+ if(/Move ?Hub|BOOST/i.test(n))return ["lwp3","LEGO BOOST Move Hub"];
+ if(/HUB ?NO|City ?Hub|Powered ?Up/i.test(n))return ["lwp3","LEGO City Hub / Powered Up"];
+ return null;}
+// Имя не узнано — спрашиваем у устройства, есть ли у него сервис VEX или LEGO.
+async function bleProbe(dev){const vs=VEX.ble.svc,ls=HW.adapters.lwp3.SV;let r=null;
+ try{const srv=await dev.gatt.connect();
+  try{await srv.getPrimaryService(vs);r=/V5/i.test(dev.name||"")?["v5ble","VEX V5"]:["iq2ble","VEX IQ (2-е поколение)"];}catch(e){}
+  if(!r)try{await srv.getPrimaryService(ls);r=["lwp3","LEGO Powered Up"];}catch(e){}
+ }catch(e){}
+ try{dev.gatt.disconnect();}catch(e){}return r;}
+// mode: "usb" — кабель (USB-порты и EV3), "ble" — Bluetooth.
+async function hwAutoDetect(ui,mode){
+ if(mode==="ble")return bleDetect(ui);
+ if(window.rcDevices&&window.rcDevices.serialAuto)window.rcDevices.serialAuto();
+ let port=null;
+ if(navigator.serial){if(ui)ui.say("Ищу робота по USB…");try{port=await navigator.serial.requestPort();}catch(e){}}
+ if(port){const info=port.getInfo(),{usbVendorId:v,usbProductId:p}=info;hwLog("автопоиск: USB "+(v||0).toString(16)+":"+(p||0).toString(16));
+  if(v===0x2888&&VEX_PIDS[p]){const a=HW.adapters[VEX_PIDS[p]];return {a,model:KITS[VEX_PIDS[p]].name};}
+  if(v===0x0694&&(p===0x0009||p===0x0010))return {a:HW.adapters.spike,model:LEGO_USB[p]};
+  // Любая другая плата, включая китайские клоны на CH340 / CP210x, — прошивка RoboCord по JSON.
+  HW.adapters.serial.pre=port;return {a:HW.adapters.serial,model:await usbBoardName(info)};}
+ if(navigator.hid){let d=[];try{d=(await navigator.hid.getDevices()).filter(x=>x.vendorId===0x0694&&x.productId===0x0005);}catch(e){}
+  if(!d.length)try{d=await navigator.hid.requestDevice({filters:[{vendorId:0x0694,productId:0x0005}]});}catch(e){}
+  if(d.length)return {a:HW.adapters.ev3,model:LEGO_USB[0x0005]};}
+ throw Object.assign(new Error("Робот по USB не найден."),{name:"NotFoundError"});
+}
+async function bleDetect(ui){
+ if(navigator.bluetooth){
+  if(window.rcDevices&&window.rcDevices.bleAuto)window.rcDevices.bleAuto();
+  if(ui)ui.say("Ищу робота по Bluetooth. Включите робота и его Bluetooth, держите рядом…");
+  const vs=VEX.ble.svc,ls=HW.adapters.lwp3.SV;let dev=null;
+  // В списке только роботы: Bluetooth сам отбирает устройства с сервисом VEX, LEGO Powered Up или WeDo 2.0
+  // (и с именами VEX / IQ). main.js сортирует их и выбирает сам, если робот один.
+  // Все сервисы, к которым потом обращаются драйверы, нужно перечислить здесь, иначе Chromium запретит доступ.
+  const ws=HW.adapters.wedo.SV;
+  try{dev=await navigator.bluetooth.requestDevice({filters:[{services:[vs]},{services:[ls]},{services:[ws]},{namePrefix:"VEX"},{namePrefix:"IQ"}],optionalServices:[vs,ls,ws,HW.adapters.wedo.IO]});}
+  catch(e){hwLog("Bluetooth: "+(e.name||"")+" "+e.message);
+   // Отмена человеком — обычный «не найден»; остальное (нет адаптера, запрет macOS) показываем как есть.
+   if(!/cancel|No device selected/i.test(e.message))throw Object.assign(new Error(/adapter|not available|permission|denied|blocked/i.test(e.message)?"macOS не дал приложению доступ к Bluetooth. Откройте «Системные настройки» → «Конфиденциальность и безопасность» → «Bluetooth» и включите Robocord, затем перезапустите приложение. ("+e.message+")":e.message),{bt:true});}
+  if(dev){let m=bleModel(dev.name);if(!m){if(ui)ui.say("Проверяю «"+(dev.name||"устройство")+"»…");m=await bleProbe(dev);}
+   hwLog("автопоиск: Bluetooth «"+(dev.name||"")+"» → "+(m?m[1]:"не робот"));
+   if(!m)throw new Error("«"+(dev.name||"Устройство")+"» не похоже на робота: у него нет сервиса VEX или LEGO. Выберите Brain или хаб в списке.");
+   const a=HW.adapters[m[0]];a.pre=dev;return {a,model:m[1]};}}
+ throw Object.assign(new Error("Робот по Bluetooth не найден."),{name:"NotFoundError",bt:true});
+}
 function openConn(){
  if(document.getElementById("hwModal"))return;
  const close=()=>{const m=document.getElementById("hwModal");if(m)m.remove();};
@@ -7538,19 +7650,22 @@ function openConn(){
       else setM("Порты сохранены.","ok");}},"Сохранить"),
     det?el("button",{class:"btn",type:"button",onclick:()=>{const A=autoPorts(kit,det);Object.assign(P,A);showPorts(kit,ad);HW.cfg.ports[kit]=P;setM("Расставлено по найденным устройствам. Нажмите «Сохранить».");}},"Расставить автоматически"):null,
     el("button",{class:"btn ghost",type:"button",onclick:()=>{box.textContent="";build();}},"Назад")),msg);};
+ const connectAd=async(a,find)=>{
+  try{if(HW.cur){await HW.cur.close();HW.cur=null;}
+   setM("Подключение…");let model="";if(find)({a,model}=await find(ui));hwLog("подключение: "+(model||a.name));await a.connect(ui);HW.cur=a;HW.model=model||a.name;updBtns();hwLog("подключено");
+   box.textContent="";build();setM("Подключено: "+HW.model+". "+(a.hint||"")+" Теперь нажмите «Запустить на роботе».","ok");
+  }catch(e){hwLog("ошибка: "+(e.name||"")+" "+e.message);if(a)try{await a.close();}catch(_){}setM("Не удалось подключиться. "+hwErrText(e,a),"bad");}};
  const build=()=>{list.textContent="";
-  box.append(el("h3",{},"Подключение робота"),el("p",{class:"hwsub"},"Выберите набор и способ связи. Для VEX приложение само загрузит на Brain нужную программу — VEXcode не нужен."),list,msg,
+  box.append(el("h3",{},"Подключение робота"),el("p",{class:"hwsub"},"Подключите робота кабелем и нажмите «Автоматически · USB» или включите Bluetooth робота и нажмите «Автоматически · Bluetooth». Приложение само определит модель набора — VEX V5 / IQ, LEGO EV3 / SPIKE / Powered Up / WeDo, Arduino и платы-клоны на CH340 / CP210x. Если устройств несколько, спросит, какое выбрать. Ниже можно подключить конкретный набор вручную."),
+   el("div",{class:"hwrow"},el("button",{class:"btn pri",type:"button",onclick:()=>connectAd(null,ui=>hwAutoDetect(ui,"usb"))},"Автоматически · USB"),el("button",{class:"btn pri",type:"button",onclick:()=>connectAd(null,ui=>hwAutoDetect(ui,"ble"))},"Автоматически · Bluetooth")),list,msg,
    el("div",{class:"hwrow"},el("button",{class:"btn ghost",type:"button",onclick:close},"Закрыть"),el("button",{class:"btn sm ghost",type:"button",onclick:()=>{box.textContent="";box.append(el("h3",{},"Журнал подключения"),el("textarea",{class:"codeta",readonly:true},HW.log.join("\n")||"Пока пусто."),el("button",{class:"btn ghost",type:"button",onclick:()=>{box.textContent="";build();}},"Назад"));}},"Журнал")));
   for(const r of ROBOTS){const row=el("div",{class:"rrow"+(r.off?" off":"")});
    const onA=(r.lives||[]).find(l=>HW.cur===HW.adapters[l[0]]);
    row.append(el("span",{class:"rn"+(onA?" on":"")},r.name+(r.off?" (пока недоступно)":"")+(onA?" — подключён":""),r.note?el("small",{},r.note):null));
    for(const [aid,lab] of (r.lives||[])){const a=HW.adapters[aid],on=HW.cur===a;
     row.append(el("button",{class:"btn sm"+(on?" pri":""),type:"button",onclick:async()=>{
-     try{if(on){await a.close();HW.cur=null;setM("Отключено.");updBtns();box.textContent="";build();return;}
-      if(HW.cur){await HW.cur.close();HW.cur=null;}
-      setM("Подключение…");hwLog("подключение: "+a.name);await a.connect(ui);HW.cur=a;updBtns();hwLog("подключено");
-      box.textContent="";build();setM("Подключено: "+a.name+". "+(a.hint||"")+" Теперь нажмите «Запустить на роботе».","ok");
-     }catch(e){hwLog("ошибка: "+(e.name||"")+" "+e.message);try{await a.close();}catch(_){}setM("Не удалось подключиться. "+hwErrText(e,a),"bad");}}},on?"Отключить":"Подключить · "+lab));}
+     if(on){try{await a.close();}catch(e){}HW.cur=null;setM("Отключено.");updBtns();box.textContent="";build();return;}
+     await connectAd(a);}},on?"Отключить":"Подключить · "+lab));}
    if(r.kit)row.append(el("button",{class:"btn sm ghost",type:"button",onclick:()=>showPorts(r.kit,onA?HW.adapters[onA[0]]:null)},"Порты"));
    if(r.arduino)row.append(el("button",{class:"btn sm ghost",type:"button",onclick:()=>openArduino()},"Arduino · настройка и прошивка"));
    if(r.code)row.append(el("button",{class:"btn sm ghost",type:"button",onclick:()=>showCode(r)},"Код"));
@@ -7682,10 +7797,17 @@ function openArduino(){
   out.value="";setM(action==="core"?"Установка поддержки платы…":upload?"Компиляция и загрузка программы…":"Компиляция…");box.querySelectorAll("button").forEach(b=>b.disabled=true);
   try{const source=program?arduinoProgramSketch(getProgram(),C):arduinoSketch(C),r=await window.rcArduino.request({action:cliAction,config:C,source});out.value=(r.output||"")+"\n"+(r.error||"");const ok=action==="core"?"Поддержка платы установлена. Теперь можно компилировать.":program?(upload?"Программа загружена. Плата выполнит её автономно после включения или сброса.":"Автономная программа скомпилирована."):upload?"Прошивка-мост загружена. Теперь подключите плату как робота RoboCord по USB.":"Прошивка скомпилирована.";setM(r.ok?ok:"Ошибка: "+(r.error||"команда не выполнена"),r.ok?"ok":"bad");}
   catch(e){setM("Ошибка: "+e.message,"bad");}finally{box.querySelectorAll("button").forEach(b=>b.disabled=false);}};
- const list=async()=>{save();if(!desktop){setM("Список портов доступен в настольном приложении.");return;}setM("Ищу платы…");try{const r=await window.rcArduino.request({action:"list",config:C});out.value=(r.output||"")+"\n"+(r.error||"");portList.textContent="";for(const p of r.ports||[])portList.append(el("option",{value:p.address},p.address+(p.label?" · "+p.label:"")));setM(r.ok?"Список портов обновлён. Выберите нужный в поле порта.":"Не найден Arduino CLI: "+(r.error||""),r.ok?"ok":"bad");}catch(e){setM(e.message,"bad");}};
+ const list=async quiet=>{quiet=quiet===true;save();if(!desktop){setM("Список портов доступен в настольном приложении.");return;}setM("Ищу платы…");try{const r=await window.rcArduino.request({action:"list",config:C});out.value=(r.output||"")+"\n"+(r.error||"");portList.textContent="";for(const p of r.ports||[])portList.append(el("option",{value:p.address},p.address+(p.label?" · "+p.label:"")));
+   if(!r.ok){setM("Не найден Arduino CLI: "+(r.error||""),"bad");return;}
+   // Определить автоматически: первая плата в списке — самая вероятная (main.js сортирует по типу).
+   const best=(r.ports||[])[0];
+   if(!best){setM(quiet?"":"Платы не найдены. Подключите плату кабелем USB, который передаёт данные.",quiet?"":"bad");return;}
+   port.value=best.address;if(best.fqbn){fqbn.value=best.fqbn;if(ARDUINO_BOARDS.some(b=>b.fqbn===best.fqbn))board.value=best.fqbn;}save();
+   setM("Найдено: "+best.label+" · "+best.address+(best.fqbn?". Порт и плата подставлены.":". Порт подставлен; плату-клон выберите в списке «Плата» (для китайских Nano обычно «старый загрузчик»).")+((r.ports||[]).length>1?" Другие порты — в поле порта.":""),"ok");}catch(e){setM(e.message,"bad");}};
  const download=kind=>{save();const program=kind==="program",source=program?arduinoProgramSketch(getProgram(),C):arduinoSketch(C),url=URL.createObjectURL(new Blob([source],{type:"text/x-arduino"})),a=document.createElement("a");a.href=url;a.download=program?"RobocordProgram.ino":"RobocordArduino.ino";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);};
  box.append(el("div",{class:"hwcfg"},el("b",{},"Прошивка-мост для управления из приложения"),el("div",{class:"hwrow"},el("button",{class:"btn sm",type:"button",onclick:list},"Найти платы и порты"),el("button",{class:"btn sm",type:"button",onclick:()=>run("core")},"Установить поддержку платы"),el("button",{class:"btn sm",type:"button",onclick:()=>run("compile")},"Скомпилировать мост"),el("button",{class:"btn sm",type:"button",onclick:()=>run("upload")},"Загрузить мост"),el("button",{class:"btn sm",type:"button",onclick:()=>download("bridge")},"Скачать .ino"),el("button",{class:"btn sm ghost",type:"button",onclick:close},"Закрыть"))),msg,out);
  if(desktop&&window.rcArduino.onProgress)window.rcArduino.onProgress(t=>{out.value+=t;out.scrollTop=out.scrollHeight;});
+ if(desktop&&!C.port)list(true);
  document.body.append(el("div",{id:"arModal",onclick:e=>{if(e.target.id==="arModal")close();}},box));
 }
 // ===== Автономная программа Arduino / ESP32: учебный C++ + драйверы RoboCord =====
@@ -8190,7 +8312,11 @@ const COURSE=[
   p:["Составьте список пяти отказов выбранной миссии и их последствий.","Добавьте безопасное поведение для одного программно обнаруживаемого отказа.","Смоделируйте отказ и повторите нормальный запуск для проверки побочных эффектов."],q:["Какие отказы нельзя устранить кодом?","Почему безопасная остановка лучше продолжения с неверными данными?"],k:["отказ","риск","аварийная остановка","восстановление"]},
  {t:"Итоговый отчёт и защита решения",g:"Представлять алгоритм, доказательства и ограничения как законченный инженерный результат.",th:"Отчёт включает задачу, конфигурацию робота, схему алгоритма, параметры, результаты испытаний и выводы. Недостаточно приложить только программу: читатель должен понять, почему выбрано такое решение и на каких данных оно проверено. Таблица содержит успешные и неуспешные запуски, иначе исчезает реальная картина надёжности. В выводе указывают область применимости, найденные ограничения и следующее улучшение. На защите отвечают по сути: как работает обратная связь, почему выбран порог, как решение поведёт себя на аналогичной карте и при каком условии откажет.",
   p:["Сохраните PDF-сводку результатов и дополните её схемой алгоритма и параметрами.","Подготовьте таблицу исходной и двух аналогичных карт с честными исходами.","Сформулируйте ограничение решения и один конкретный следующий эксперимент."],q:["Почему неуспешные запуски включают в отчёт?","Как доказать переносимость решения?"],k:["отчёт","доказательство","ограничение","защита проекта"],tasks:courseTasks(56,79,90)}
-]}
+]},
+{"m": "Arduino и электроника своими руками", "lvl": "7–9 класс · своя плата", "intro": "Собираем робота на Arduino или китайском клоне: питание, драйвер мотора, пины и прошивка RoboCord. После модуля плата подключается к приложению и выполняет те же программы, что 3D-робот.", "L": [{"t": "Плата Arduino и её клоны", "g": "Узнавать плату и чип USB, выбирать тип платы при загрузке.", "th": "Arduino Uno, Nano и Mega построены на микроконтроллерах ATmega. Оригинальные платы связываются с компьютером через свой USB-чип, а недорогие клоны — через чипы CH340, CP210x или FTDI. Для программы разницы нет, но компьютеру иногда нужен драйвер, а для клонов Nano — вариант «старый загрузчик». РобоКорд определяет чип по коду производителя USB и подставляет порт сам; если плат несколько, он спросит, какую использовать.", "p": ["Подключите плату и нажмите «Подключить автоматически»; запишите, как приложение назвало плату.", "В окне Arduino нажмите «Найти платы и порты» и сравните FQBN с моделью на плате.", "Найдите на плате микроконтроллер и USB-чип, выпишите их маркировку."], "q": ["Почему клон на CH340 работает с той же программой, что и оригинал?", "Что произойдёт, если загрузить прошивку с неверным FQBN?"], "k": ["микроконтроллер", "CH340", "FQBN", "загрузчик"]}, {"t": "Питание и драйвер мотора", "g": "Подключать мотор через драйвер, не перегружая плату.", "th": "Пин Arduino выдаёт ток в десятки миллиампер, а мотору нужны сотни. Поэтому мотор подключают к драйверу (L298N, TB6612, L9110), а плата только командует: сигнал PWM задаёт мощность, сигнал DIR — направление. У драйвера и платы обязательно общий минус (GND). Мотор питается от отдельного аккумулятора, иначе при старте напряжение просядет и плата перезагрузится.", "p": ["Нарисуйте схему: аккумулятор → драйвер → мотор, плата → PWM и DIR драйвера, общий GND.", "Подключите один мотор к пинам 5 (PWM) и 4 (DIR) и запустите его на 30 % из приложения.", "Поменяйте направление в программе и проверьте, что мотор крутится в другую сторону."], "q": ["Зачем нужен общий GND?", "Почему нельзя питать мотор прямо от пина?"], "k": ["драйвер", "PWM", "DIR", "общий минус"]}, {"t": "Прошивка-мост RoboCord", "g": "Загружать мост и проверять обмен данными по USB.", "th": "Прошивка-мост превращает плату в исполнителя: приложение отправляет строки JSON вида {\"m\":[50,50]}, плата включает моторы и раз в несколько миллисекунд присылает показания датчиков. Если данных нет, приложение сообщит об этом. При открытии порта многие платы перезагружаются, поэтому первые 1–2 секунды связи нет — это нормально.", "p": ["В окне Arduino проверьте пины моторов и загрузите мост.", "Подключите плату как робота и посмотрите в «Журнал», какие данные пришли.", "Запустите короткую программу «ехать 20 см» и сравните реальный путь с симулятором."], "q": ["Что такое протокол обмена?", "Почему после подключения плата отвечает не сразу?"], "k": ["прошивка", "JSON", "последовательный порт", "журнал"]}, {"t": "Датчики на Arduino", "g": "Подключать HC-SR04, кнопку и энкодер и проверять их показания.", "th": "Ультразвуковой датчик HC-SR04 измеряет время эха: TRIG запускает импульс, ECHO возвращает его длительность. Кнопка касания подключается к пину с подтяжкой INPUT_PULLUP. Энкодер считает импульсы вращения колеса, и по числу импульсов на оборот программа вычисляет путь. На платах с питанием 3,3 В (ESP32) сигнал ECHO нужно ослабить делителем напряжения.", "p": ["Подключите HC-SR04 к пинам 8 и 14 и проверьте расстояние до стены линейкой.", "Подключите кнопку и убедитесь, что приложение показывает касание.", "Посчитайте путь колеса за 10 оборотов и сравните с показанием энкодера."], "q": ["Почему ECHO на ESP32 нельзя подключать напрямую?", "Как связаны импульсы энкодера и пройденный путь?"], "k": ["HC-SR04", "подтяжка", "энкодер", "делитель напряжения"]}]},
+{"m": "ESP32 и беспроводные роботы", "lvl": "8–10 класс · связь", "intro": "ESP32 — микроконтроллер с Wi-Fi и Bluetooth. Учимся прошивать его, выбирать пины и понимать, как робот обменивается данными без кабеля.", "L": [{"t": "ESP32: что отличается от Arduino Uno", "g": "Учитывать напряжение 3,3 В, пины и установку поддержки платы.", "th": "ESP32 работает от 3,3 В, у него больше памяти и два ядра. Часть пинов служебные: их нельзя занимать моторами, иначе плата не загрузится. Для компиляции нужна поддержка платы — в окне Arduino это кнопка «Установить поддержку платы». Китайские платы ESP32 часто стоят на чипах CP210x или CH340, и приложение узнаёт их по USB.", "p": ["Установите поддержку ESP32 и скомпилируйте мост.", "Выпишите из документации платы пины, которые нельзя использовать.", "Переназначьте пины моторов на безопасные и загрузите мост."], "q": ["Почему важно напряжение 3,3 В?", "Что будет, если занять пин загрузки?"], "k": ["ESP32", "3,3 В", "служебные пины", "поддержка платы"]}, {"t": "Bluetooth и Wi-Fi: как идут команды", "g": "Сравнивать проводную и беспроводную связь по задержке и надёжности.", "th": "По кабелю команда доходит за миллисекунды и почти не теряется. По радио возможны задержки и потери пакетов, поэтому программа должна уметь остановить моторы, если связь пропала. В мосте RoboCord это сторожевой таймер: без новых команд моторы останавливаются сами.", "p": ["Измерьте время реакции робота на команду «стоп» по кабелю.", "Обсудите, что должно произойти с роботом при обрыве связи.", "Найдите в коде моста место, где моторы останавливаются без команд."], "q": ["Зачем роботу сторожевой таймер?", "Почему радиосвязь менее надёжна, чем кабель?"], "k": ["задержка", "пакет", "сторожевой таймер", "надёжность"]}, {"t": "Телеметрия и графики", "g": "Записывать показания датчиков во времени и находить в них закономерности.", "th": "Телеметрия — поток измерений от робота: угол гироскопа, расстояние, путь. Если записать её во время заезда, можно увидеть, где робот начал отклоняться и почему. Инженеры сначала смотрят на данные, а уже потом меняют программу.", "p": ["Проедьте по прямой и выпишите угол гироскопа каждые полсекунды.", "Постройте график угла от времени.", "Найдите момент, когда отклонение стало больше 5°, и предложите исправление."], "q": ["Что такое телеметрия?", "Почему полезно смотреть на график, а не на одно число?"], "k": ["телеметрия", "график", "отклонение", "анализ данных"]}, {"t": "Мини-проект: робот на ESP32", "g": "Собрать и запустить беспроводного робота по своей схеме.", "th": "Проект объединяет всё изученное: схему питания, драйвер, пины ESP32, прошивку и программу. Результат проекта — не только работающий робот, но и документация: схема, таблица пинов, результаты испытаний.", "p": ["Составьте таблицу пинов своего робота.", "Соберите робота и проведите три заезда на 50 см.", "Запишите результаты и одну найденную проблему с решением."], "q": ["Что должно быть в документации проекта?", "Как доказать, что робот работает стабильно?"], "k": ["проект", "таблица пинов", "испытание", "документация"]}]},
+{"m": "Соревнования и командная работа", "lvl": "5–11 класс · турнир", "intro": "Готовимся к турнирам роботов: регламент, тактика, роли в команде и проверка программы на скорость и надёжность.", "L": [{"t": "Регламент и критерии оценки", "g": "Читать регламент и превращать его в требования к роботу.", "th": "Регламент — это техническое задание соревнования: размеры робота, время, способ подсчёта очков, штрафы. Победа начинается с внимательного чтения: команда выписывает, что даёт очки, что запрещено и сколько попыток доступно.", "p": ["Выпишите из регламента турнира РобоКорд три условия, которые влияют на программу.", "Составьте таблицу «действие → очки → риск».", "Выберите, какие задания команда будет выполнять первыми."], "q": ["Почему регламент — это техническое задание?", "Как штрафы влияют на тактику?"], "k": ["регламент", "критерии", "штраф", "тактика"]}, {"t": "Роли в команде", "g": "Распределять работу и договариваться о решениях.", "th": "В команде роботостроителей обычно есть конструктор, программист, испытатель и капитан. Роли не означают, что остальные не участвуют: испытатель записывает результаты, программист меняет код по данным, капитан следит за временем. Хорошая команда принимает решения по измерениям, а не по спору.", "p": ["Распределите роли и запишите обязанности каждого.", "Проведите 5 заездов и ведите журнал испытаний.", "Обсудите результаты и выберите одно изменение."], "q": ["Зачем команде журнал испытаний?", "Как решать споры в команде?"], "k": ["роль", "журнал испытаний", "решение", "ответственность"]}, {"t": "Скорость против надёжности", "g": "Находить баланс между временем заезда и числом ошибок.", "th": "Быстрый робот чаще ошибается: проскакивает линию, сильнее заносит на поворотах. На соревнованиях важна средняя оценка нескольких попыток, поэтому надёжная программа часто выигрывает у быстрой, но нестабильной.", "p": ["Запустите задачу с линией на скорости 40 %, 60 % и 80 %; запишите время и ошибки.", "Посчитайте средний результат для каждой скорости.", "Выберите скорость для турнира и обоснуйте выбор."], "q": ["Почему самая быстрая программа не всегда лучшая?", "Как посчитать надёжность?"], "k": ["скорость", "надёжность", "среднее", "компромисс"]}, {"t": "Защита проекта перед жюри", "g": "Коротко и доказательно рассказывать о своём роботе.", "th": "Жюри оценивает не только робота, но и то, как команда объясняет решения: какую проблему решали, что пробовали, какие данные получили. Хорошая защита укладывается в три минуты и опирается на измерения и фото испытаний.", "p": ["Составьте план выступления из пяти пунктов.", "Подготовьте один график или таблицу испытаний.", "Проведите пробную защиту и ответьте на два вопроса товарищей."], "q": ["Что жюри хочет услышать в первую минуту?", "Почему данные убедительнее слов?"], "k": ["защита", "аргумент", "доказательство", "презентация"]}]},
+{"m": "Искусственный интеллект и зрение робота", "lvl": "9–11 класс · продвинутый", "intro": "Как роботы распознают объекты и принимают решения: от порога датчика до нейросети. Учимся понимать возможности и ограничения ИИ и честно проверять его ответы.", "L": [{"t": "От порога к распознаванию", "g": "Понимать, чем правило отличается от обученной модели.", "th": "Датчик цвета с порогом — это простое правило: «если яркость меньше 30 — линия». Камера даёт миллионы чисел, и правило уже не написать вручную. Тогда модель обучают на примерах: показывают изображения с ответами, и она подбирает свои «пороги» сама. Но модель ошибается там, где примеры были непохожи на реальность.", "p": ["Запишите правило для датчика линии и проверьте его на трёх цветах поля.", "Придумайте, какие примеры нужны модели, чтобы узнавать банку.", "Опишите ситуацию, в которой модель может ошибиться."], "q": ["Чем обученная модель отличается от правила?", "Почему важны разнообразные примеры?"], "k": ["правило", "модель", "обучение", "обучающая выборка"]}, {"t": "Камера и обработка изображения", "g": "Понимать, как изображение превращается в координаты объекта.", "th": "Изображение — это таблица пикселей. Чтобы найти объект, программа выделяет пиксели нужного цвета, находит их центр и сравнивает с серединой кадра. Отклонение центра становится ошибкой, как у датчика линии, и робот поворачивает, чтобы ошибка стала нулевой.", "p": ["На бумажном «кадре» 8×8 закрасьте объект и найдите его центр.", "Вычислите отклонение центра от середины кадра.", "Предложите, на сколько градусов повернуть робота."], "q": ["Как связаны пиксели и координаты?", "Почему поиск объекта похож на следование линии?"], "k": ["пиксель", "центр масс", "ошибка", "обратная связь"]}, {"t": "ИИ-помощник РобоКорда: как им пользоваться", "g": "Получать от ИИ подсказку и самостоятельно проверять её.", "th": "ИИ-помощник в РобоКорде разбирает решение, предлагает похожую задачу и подсказывает, если вы застряли. Он может ошибаться, поэтому каждую подсказку нужно проверить запуском в 3D. Помощник не решает задачу за ученика: цель — понять ошибку, а не скопировать ответ.", "p": ["Решите задачу и попросите ИИ проверить решение.", "Найдите в ответе ИИ одно утверждение и проверьте его запуском.", "Запишите, что вы поняли благодаря подсказке."], "q": ["Почему ответ ИИ нужно проверять?", "Чем подсказка отличается от готового решения?"], "k": ["ИИ-помощник", "проверка", "подсказка", "ответственность"]}, {"t": "Этика и безопасность автономных роботов", "g": "Оценивать риски автономных систем и способы их снижения.", "th": "Автономный робот принимает решения без человека, поэтому инженер заранее продумывает, что будет при ошибке датчика, обрыве связи или неверном распознавании. Есть простые правила: аварийная остановка, ограничение скорости, понятный журнал действий, проверка на безопасном стенде.", "p": ["Составьте список трёх опасных ситуаций для школьного робота.", "Для каждой предложите способ защиты.", "Проверьте, как ваш робот ведёт себя при обрыве кабеля."], "q": ["Кто отвечает за решение автономного робота?", "Зачем роботу аварийная остановка?"], "k": ["автономность", "риск", "аварийная остановка", "этика"]}]}
 ];
 async function renderCourse(){const root=$("#mods");if(!root)return;root.textContent="";
  COURSE.forEach((m,i)=>{const d=el("details",{class:"mod",open:i===0},el("summary",null,el("h3",{text:`Модуль ${i+1}. ${m.m}`}),el("span",{class:"tag b",text:m.lvl}),el("span",{class:"tag",text:m.L.length+" урока"})),el("div",{class:"lessons"},el("div",{class:"lesson"},el("p",{text:m.intro})),m.L.map((l,j)=>el("div",{class:"lesson"},el("h4",{text:`${i+1}.${j+1} ${l.t}`}),el("dl",null,el("dt",{text:"Цель"}),el("dd",{text:l.g}),el("dt",{text:"Теория"}),el("dd",{text:l.th}),el("dt",{text:"Практика"}),el("dd",null,el("ol",null,l.p.map(x=>el("li",{text:x})))),el("dt",{text:"Проверь себя"}),el("dd",null,el("ul",null,l.q.map(x=>el("li",{text:x})))),el("dt",{text:"Понятия"}),el("dd",null,l.k.map(x=>el("span",{class:"tag",text:x})))),l.tasks?el("div",{class:"bar"},l.tasks.filter(id=>TASKS.find(t=>t.id===id)).map(id=>{const t=TASKS.find(t=>t.id===id);return el("a",{class:"btn sm",href:"#sim",onclick:()=>openTask(id)},"Задача "+taskNo(t)+": "+t.t);})):null))));root.append(d);});
