@@ -374,6 +374,7 @@ nav a[data-v="more"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%2
 .pend{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;border:1px solid var(--line);font:600 13px ui-monospace,Menlo,monospace}
 .chipx{border:0;background:none;color:var(--ink2);cursor:pointer;font-size:16px;line-height:1;padding:0 6px}
+.seatin{width:80px;margin-left:6px}
 </style>
 </head><body>
 <header class="top"><div class="wrap">
@@ -9830,11 +9831,16 @@ async function cabClasses(box){const cls=await api("classes");
  const lm=note(""),pm=note(""),lf=el("form",{class:"inline"},el("input",{name:"code",placeholder:"Промокод лицензии RC-…",required:true,autocomplete:"off",autocapitalize:"characters"}),el("button",{class:"btn sm pri",type:"submit"},"Применить"));
  lf.onsubmit=async e=>{e.preventDefault();try{const r=await api("classes/"+c.id+"/promo",{body:{code:new FormData(lf).get("code")}});await accRefresh();lm.className="msg ok";lm.textContent="Лицензия применена: "+r.seats+" учеников до "+proUntilText({pro_until:r.pro_until})+". Вам — Pro бесплатно.";setTimeout(cabShow,1800);}catch(err){lm.className="msg bad";lm.textContent=err.message;}};
  const buy=()=>{pm.className="msg";pm.textContent="Онлайн-оплата скоро появится. Сейчас лицензию на класс выдаёт администратор РобоКорд промокодом — введите его ниже.";};
+ // число мест выбирает учитель: от 5, по умолчанию — сколько учеников в классе; цена пересчитывается сразу
+ const bm=el("button",{class:"btn sm pri",type:"button",onclick:buy}),by=el("button",{class:"btn sm",type:"button",onclick:buy});
+ const sIn=el("input",{type:"number",min:PLAN.class_min_seats,max:500,value:seats,class:"seatin","aria-label":"Учеников в лицензии"});
+ const upd=()=>{const n=Math.max(PLAN.class_min_seats,Math.min(500,Math.floor(+sIn.value)||PLAN.class_min_seats));bm.textContent="Месяц на "+n+" уч. — "+(n*PLAN.price).toLocaleString("ru-RU")+" ₽";by.textContent="Год на "+n+" уч. — "+(n*PLAN.price_year).toLocaleString("ru-RU")+" ₽";};
+ sIn.oninput=upd;sIn.onchange=()=>{sIn.value=Math.max(PLAN.class_min_seats,Math.min(500,Math.floor(+sIn.value)||PLAN.class_min_seats));upd();};upd();
+ const seatRow=el("div",{class:"bar"},el("label",{class:"hwset"},"Учеников:",sIn),bm,by);
  box.append(el("div",{class:"pcard lic"},el("div",{},el("h3",{},"Лицензия Pro на класс "+c.name),
   el("p",{},active?"Действует до "+proUntilText({pro_until:c.pro_until})+" · мест: "+c.pro_seats+(st.length>c.pro_seats?". Учеников больше, чем мест: Pro у первых "+c.pro_seats+" по порядку добавления.":"."):"Не подключена: ученики класса на бесплатном тарифе (VEX IQ, ИИ — "+PLAN.free_ai+" обращений в месяц)."),
   el("p",{class:"hint"},"Лицензия — от "+PLAN.class_min_seats+" учеников. Pro сразу у каждого ученика класса, в том числе у добавленных позже (в пределах мест), а у вас, учителя, — бесплатно."),
-  el("div",{class:"bar"},el("button",{class:"btn sm pri",type:"button",onclick:buy},"Месяц на "+seats+" уч. — "+(seats*PLAN.price).toLocaleString("ru-RU")+" ₽"),
-   el("button",{class:"btn sm",type:"button",onclick:buy},"Год на "+seats+" уч. — "+(seats*PLAN.price_year).toLocaleString("ru-RU")+" ₽")),pm,
+  seatRow,pm,
   el("p",{class:"hint",style:"margin-top:10px"},"Есть промокод лицензии на класс?"),lf,lm)));
  // добавить ученика по ID — ученик подтверждает приглашение у себя в профиле
  const im=note(""),pend=el("div",{class:"pend"}),inv=el("form",{class:"inline"},el("input",{name:"code",placeholder:"ID ученика, например RC-7K2M9Q",required:true,autocomplete:"off",autocapitalize:"characters"}),el("button",{class:"btn sm pri",type:"submit"},"Пригласить"));
