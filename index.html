@@ -10102,7 +10102,13 @@ async function cabPromo(root){root.textContent="";
     r.codes.map(c=>el("tr",{},el("td",{},el("code",{},c.code)),el("td",{},String(c.days)),el("td",{},c.note||""),el("td",{},(c.created_at||"").slice(0,10)),el("td",{},c.used_at?(c.used_login||"да")+" · "+c.used_at.slice(0,10):"свободен")))));}catch(e){out.append(note(e.message,"bad"));}};
  f.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(f));
   try{const r=await api("admin/promo",{body:{days:+d.days,count:+d.count,note:d.note}});msg.className="msg ok";msg.textContent="Создано: "+r.codes.join(", ");list();}catch(err){msg.className="msg bad";msg.textContent=err.message;}};
- root.append(f,out);list();}
+ // ручная выдача Pro (то же — команда /pro в Телеграм-боте)
+ const pm=note(""),pf=el("form",{class:"authf wide"},el("h3",{},"Выдать Pro вручную"),
+  field("Логин или почта ученика",{name:"login",required:true}),field("Дней (0 — снять Pro)",{name:"days",type:"number",min:0,max:3660,value:30,required:true}),
+  el("button",{class:"btn pri",type:"submit"},"Применить"),pm);
+ pf.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(pf));
+  try{const r=await api("admin/pro",{body:{login:d.login.trim(),days:+d.days}});pm.className="msg ok";pm.textContent=r.user.pro?r.user.login+": Pro до "+proUntilText(r.user):"Pro у "+r.user.login+" снят.";}catch(err){pm.className="msg bad";pm.textContent=err.message;}};
+ root.append(f,pf,out);list();}
 // ===== Правовые документы и уведомление о cookie =====
 // Реквизиты оператора задаёт администратор: Админ-панель → «Сайт: подвал и реквизиты» (ключи op_*).
 const DOCS_VERSION="2026-11-12";
