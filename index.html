@@ -365,6 +365,15 @@ nav a[data-v="more"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%2
 .cookie-bar{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;max-width:640px;margin:0 auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.18);display:grid;gap:10px}
 .cookie-bar p{margin:0;font-size:14px;line-height:1.45}
 @media (max-width:760px){.cookie-bar{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
+/* ID ученика, приглашения, лицензия класса */
+.idcard{display:grid;gap:8px}.idcard h3{margin:0}
+.sid{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0}.sid code{font-size:22px;font-weight:800;letter-spacing:2px;padding:6px 12px;border-radius:10px;background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--ink)}
+.invite{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:12px;margin-top:8px}.invite span{flex:1 1 220px}
+.plan-alt{margin:-4px 0 4px;color:var(--ink2);font-size:14px}
+.lic{margin:14px 0;display:block}.lic h3{margin:0 0 6px}
+.pend{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;border:1px solid var(--line);font:600 13px ui-monospace,Menlo,monospace}
+.chipx{border:0;background:none;color:var(--ink2);cursor:pointer;font-size:16px;line-height:1;padding:0 6px}
 </style>
 </head><body>
 <header class="top"><div class="wrap">
@@ -9583,10 +9592,10 @@ async function apiRequest(path,opt,token){opt=opt||{};const controller=new Abort
 function accSet(user,token,remember){ACC.user=user;ACC.token=token;const keep=remember!==false;
  lsSet("rc-user",keep?user:null);lsSet("rc-token",keep?token:null);ssSet("rc-user",keep?null:user);ssSet("rc-token",keep?null:token);if(typeof tpInit==="function")tpInit();if(typeof aiReset==="function")aiReset();if(typeof utLoaded!=="undefined")utLoaded=false;accNav();}
 const isAdmin=()=>ACC.user&&ACC.user.role==="admin",isTeacher=()=>ACC.user&&(ACC.user.role==="teacher"||ACC.user.role==="admin");
-const ROLE={student:"ученик",teacher:"учитель",admin:"владелец платформы"};
+const ROLE={student:"ученик",teacher:"учитель",org:"школа",admin:"владелец платформы"};
 function accNav(){const a=$("#navAcc");if(a)a.textContent=ACC.user?ACC.user.login:(BUILD==="site"?"Войти":"Профиль");
  // «Учителям» на сайте виден всем (там вход), в приложении — только учителям и администраторам как их панель
- const c=$("#navCab");if(c){c.textContent=isAdmin()?"Админ-панель":isTeacher()?"Кабинет учителя":"Учителям";c.hidden=BUILD==="app"&&!isTeacher();}
+ const c=$("#navCab");if(c){c.textContent=isAdmin()?"Админ-панель":isTeacher()?"Кабинет учителя":ACC.user&&ACC.user.role==="org"?"Кабинет школы":"Учителям";c.hidden=BUILD==="app"&&!isTeacher()&&!(ACC.user&&ACC.user.role==="org");}
  const o=$("#navOut");if(o)o.hidden=!ACC.user;
  if(typeof planChanged==="function")planChanged();}
 // Плашка «Да / Нет» вместо системного confirm: выйти случайно стало нельзя.
@@ -9640,7 +9649,7 @@ function loginForm(root,kind,done){
  const f=el("form",{class:"authf"}),msg=note("");
  const L=field(kind==="reg"?"Логин":"Логин или почта",{name:"login",autocomplete:"username",required:true}),P=field("Пароль",{name:"password",type:"password",autocomplete:kind==="reg"?"new-password":"current-password",required:true});
  const P2=kind==="reg"?field("Пароль ещё раз",{name:"password2",type:"password",autocomplete:"new-password",required:true}):null;
- f.append(...[el("h3",{},kind==="reg"?"Регистрация":kind==="teacher"?"Вход для учителей и администраторов":"Вход для учеников"),L,P,P2,
+ f.append(...[el("h3",{},kind==="reg"?"Регистрация":kind==="teacher"?"Вход для учителей, школ и администраторов":"Вход для учеников"),L,P,P2,
   kind==="reg"?null:el("label",{class:"hwset"},el("input",{type:"checkbox",name:"remember",checked:true}),"Запомнить меня"),
   kind==="reg"?null:Object.assign(field("Ключ доступа администратора (15 символов)",{name:"admin_key",type:"password",autocomplete:"off"}),{hidden:true,className:"fld akey"}),
   el("button",{class:"btn pri",type:"submit"},kind==="reg"?"Создать аккаунт":"Войти"),msg].filter(Boolean));
@@ -9663,6 +9672,7 @@ async function profileShow(){const root=$("#profileRoot");if(!root)return;root.t
    el("p",{class:"plan-line"},isPro()?(u.role!=="admin"?"Тариф Pro — до "+proUntilText(u)+" · ":"Тариф Pro (администратор платформы)"):"Тариф: Бесплатный · ",u.role!=="admin"?el("a",{href:"#plan"},isPro()?"продлить":"подключить Pro за "+PLAN.price+" ₽/мес"):null)),
   el("div",{class:"bar"},isTeacher()?el("a",{class:"btn pri",href:"#cab"},isAdmin()?"Открыть админ-панель":"Открыть кабинет учителя"):null,
    el("button",{class:"btn ghost",type:"button",onclick:async()=>{if(await accLogout())profileShow();}},"Выйти"))));
+ if(u.role==="student")root.append(studentClassCard());
  if(u.role!=="admin"){const df=el("details",{class:"danger-zone"},el("summary",{},"Удалить аккаунт"));
   const dm=note(""),dform=el("form",{class:"authf wide"},el("p",{class:"hint"},"Аккаунт, программы, решения, карты и история ИИ будут удалены без возможности восстановления. Это также отзыв согласия на обработку персональных данных."),
    field("Пароль для подтверждения",{name:"password",type:"password",autocomplete:"current-password",required:true}),el("button",{class:"btn danger",type:"submit"},"Удалить навсегда"),dm);
@@ -9740,18 +9750,20 @@ async function footerShow(){const f=$("#siteFoot");if(!f)return;let s={};try{s=a
 // ---------- кабинет (сайт): вход для учеников / учителей, админ-панель, кабинет учителя ----------
 const CAB={tab:"stats",cls:null};
 async function cabShow(){const root=$("#cab");if(!root)return;root.textContent="";
- {const h=$("#v-cab h1"),p=$("#v-cab > p.hint");if(h)h.textContent=isAdmin()?"Админ-панель":isTeacher()?"Кабинет учителя":"Учителям и школам";if(p)p.hidden=isTeacher();}
+ {const h=$("#v-cab h1"),p=$("#v-cab > p.hint");if(h)h.textContent=isAdmin()?"Админ-панель":isTeacher()?"Кабинет учителя":isOrg()?"Кабинет школы":"Учителям и школам";if(p)p.hidden=isTeacher()||isOrg();}
  if(!ACC.user&&BUILD==="app"){location.hash="#profile";return;}
  if(!ACC.user){const g=el("div",{class:"authgrid"});root.append(g);loginForm(g,"student",cabShow);loginForm(g,"teacher",cabShow);
-  root.append(el("p",{class:"hint"},"Регистрации на сайте нет. Логин и пароль ученику выдаёт учитель в своём кабинете, учителю — администратор платформы."));return;}
+  root.append(el("p",{class:"hint"},"Ученики и учителя регистрируются сами: «Профиль» → «Регистрация». Ученику логин может выдать и учитель. Аккаунт школы выдаёт администратор РобоКорд."));return;}
+ if(isOrg()){await cabOrg(root);return;}
  if(!isTeacher()){location.hash="#profile";return;}
- const tabs=isAdmin()?[["stats","Статистика"],["ai","ИИ и API"],["admins","Администраторы"],["teachers","Учителя и школы"],["students","Ученики"],["classes","Мои классы"],["tasks","Задачи"],["courses","Курсы"],["maps","Все карты"],["site","Сайт и реквизиты"],["akey","Ключ доступа"],["promo","Промокоды"]]:[["classes","Мои классы"],["tasks","Мои задачи"],["courses","Курсы"]];
+ const tabs=isAdmin()?[["stats","Статистика"],["ai","ИИ и API"],["admins","Администраторы"],["teachers","Школы и учителя"],["students","Ученики"],["classes","Мои классы"],["tasks","Задачи"],["courses","Курсы"],["maps","Все карты"],["site","Сайт и реквизиты"],["akey","Ключ доступа"],["promo","Промокоды"]]:[["classes","Мои классы"],["tasks","Мои задачи"],["courses","Курсы"]];
  if(!tabs.find(t=>t[0]===CAB.tab))CAB.tab=tabs[0][0];
  const nickF=el("form",{class:"inline nickf"},el("input",{name:"nick",maxlength:"40",value:ACC.user.nick||"",placeholder:"Ник для учеников, например «Ирина Петровна»","aria-label":"Ник, который видят ученики"}),el("button",{class:"btn sm",type:"submit"},"Сохранить ник"));
  nickF.onsubmit=async e=>{e.preventDefault();try{const r=await api("profile",{method:"PUT",body:{nick:new FormData(nickF).get("nick")}});ACC.user=Object.assign(ACC.user,{nick:r.user.nick});accSet(ACC.user,ACC.token,!!lsGet("rc-token",null));COURSES_CACHE=null;utLoaded=false;cabShow();}catch(err){alert(err.message);}};
  root.append(el("div",{class:"pcard"},el("div",{},el("h2",{},(isAdmin()?"Админ-панель · ":"Кабинет учителя · ")+(ACC.user.nick||fio(ACC.user))),el("p",{class:"hint"},"Логин: "+ACC.user.login+" · ученики видят вас как «"+(ACC.user.nick||fio(ACC.user))+"»"),nickF),
   el("button",{class:"btn ghost",type:"button",onclick:async()=>{if(await accLogout())cabShow();}},"Выйти")),
   el("div",{class:"seg wrapseg"},...tabs.map(([k,n])=>el("button",{type:"button","aria-pressed":String(CAB.tab===k),onclick:()=>{CAB.tab=k;cabShow();}},n))));
+ if(ACC.user.role==="teacher")root.append(teacherOrgCard());
  const box=el("div",{class:"cabbox"});root.append(box);
  try{await ({stats:cabStats,ai:cabAI,admins:cabAdmins,teachers:cabTeachers,students:cabStudents,classes:cabClasses,tasks:cabTasks,courses:cabCourses,maps:cabMaps,site:cabSite,akey:cabAdminKey,promo:cabPromo})[CAB.tab](box);}
  catch(e){box.append(note(e.message,"bad"));}}
@@ -9777,6 +9789,7 @@ async function cabAdmins(box){const list=await api("admin/admins");const res=el(
      el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{if(!confirm("Выдать новый пароль администратору "+a.login+"? Старый перестанет работать."))return;const r=await api("admin/reset",{body:{user_id:a.id}});out.textContent="";out.append(credsBox([{name:fio(a),login:r.login,password:r.password}],"Новый пароль"));}},"Новый пароль"),
      el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{if(!confirm("Удалить администратора "+a.login+"?"))return;try{await api("admin/admins/"+a.id,{method:"DELETE"});cabShow();}catch(e){alert(e.message);}}},"Удалить"),out));}))));}
 async function cabTeachers(box){const [orgs,ts]=await Promise.all([api("admin/orgs"),api("admin/teachers")]);
+ box.append(adminOrgAccounts(orgs));
  const res=el("div");
  const f=el("form",{class:"authf wide"},el("h3",{},"Добавить учителя"),
   el("label",{class:"fld"},el("span",{},"Образовательная организация"),el("select",{name:"org_id"},el("option",{value:""},"— новая организация (впишите ниже) —"),...orgs.map(o=>el("option",{value:o.id},o.name)))),
@@ -9799,9 +9812,9 @@ async function cabStudents(box){const st=await api("admin/students");
 async function cabClasses(box){const cls=await api("classes");
  const f=el("form",{class:"inline"},el("input",{name:"name",placeholder:"Новый класс, например 7А",required:true}),el("button",{class:"btn pri sm",type:"submit"},"Добавить класс"));
  f.onsubmit=async e=>{e.preventDefault();await api("classes",{body:{name:new FormData(f).get("name")}});cabShow();};
- box.append(f);
+ if(!isOrg())box.append(f);
  if(!cls.length){box.append(el("p",{class:"hint"},"Классов пока нет. Добавьте класс, затем учеников — логины и пароли создадутся автоматически."));return;}
- box.append(el("div",{class:"seg wrapseg"},...cls.map(c=>el("button",{type:"button","aria-pressed":String(CAB.cls===c.id),onclick:()=>{CAB.cls=c.id;cabShow();}},c.name+" ("+c.students+")"))));
+ box.append(el("div",{class:"seg wrapseg"},...cls.map(c=>el("button",{type:"button","aria-pressed":String(CAB.cls===c.id),onclick:()=>{CAB.cls=c.id;cabShow();}},c.name+(c.teacher?" · "+c.teacher:"")+" ("+c.students+")"))));
  const c=cls.find(x=>x.id===CAB.cls)||cls[0];CAB.cls=c.id;
  const [st,sol,reviews,aiState,progRows]=await Promise.all([api("classes/"+c.id+"/students"),api("classes/"+c.id+"/solutions"),api("ai/reviews?class_id="+c.id),api("ai/status"),api("classes/"+c.id+"/progress").catch(()=>[])]);
  if(typeof loadUserTasks==="function"){utLoaded=false;await loadUserTasks().catch(()=>{});}
@@ -9810,9 +9823,26 @@ async function cabClasses(box){const cls=await api("classes");
  const res=el("div"),aiMsg=el("span",{class:"hint"});
  const aiCheck=el("input",{type:"checkbox",checked:!!aiState.ai_enabled,"aria-label":"Разрешить ИИ ученикам"});
  aiCheck.onchange=async()=>{aiCheck.disabled=true;aiMsg.textContent="Сохранение…";try{await api("ai/settings",{method:"PUT",body:{enabled:aiCheck.checked}});ACC.user.ai_enabled=aiCheck.checked;lsSet("rc-user",ACC.user);aiMsg.textContent=aiCheck.checked?"ИИ разрешён ученикам всех ваших классов.":"ИИ скрыт и заблокирован для учеников всех ваших классов.";}catch(e){aiCheck.checked=!aiCheck.checked;aiMsg.textContent=e.message;}finally{aiCheck.disabled=false;}};
- box.append(el("div",{class:"ai-teacher"},el("label",{},aiCheck,el("b",{},"Разрешить ИИ-помощника ученикам")),aiMsg),
+ box.append(isOrg()?el("span"):el("div",{class:"ai-teacher"},el("label",{},aiCheck,el("b",{},"Разрешить ИИ-помощника ученикам")),aiMsg),
   el("div",{class:"bar",style:"margin-top:12px"},el("button",{class:"btn sm pri",type:"button",onclick:e=>saveClassPdf(e.currentTarget,c,st,sol,reviews)},"Скачать сводку класса PDF"),el("span",{class:"hint"},"Все ученики, решения, ИИ-оценки и комментарии по критериям.")));
- const add=el("form",{class:"authf wide"},el("h3",{},"Добавить учеников в "+c.name),
+ // лицензия Pro на класс: от 5 учеников, учителю — Pro бесплатно
+ const active=c.pro_until&&new Date(c.pro_until.replace(" ","T")+"Z")>new Date(),seats=Math.max(PLAN.class_min_seats,st.length);
+ const lm=note(""),pm=note(""),lf=el("form",{class:"inline"},el("input",{name:"code",placeholder:"Промокод лицензии RC-…",required:true,autocomplete:"off",autocapitalize:"characters"}),el("button",{class:"btn sm pri",type:"submit"},"Применить"));
+ lf.onsubmit=async e=>{e.preventDefault();try{const r=await api("classes/"+c.id+"/promo",{body:{code:new FormData(lf).get("code")}});await accRefresh();lm.className="msg ok";lm.textContent="Лицензия применена: "+r.seats+" учеников до "+proUntilText({pro_until:r.pro_until})+". Вам — Pro бесплатно.";setTimeout(cabShow,1800);}catch(err){lm.className="msg bad";lm.textContent=err.message;}};
+ const buy=()=>{pm.className="msg";pm.textContent="Онлайн-оплата скоро появится. Сейчас лицензию на класс выдаёт администратор РобоКорд промокодом — введите его ниже.";};
+ box.append(el("div",{class:"pcard lic"},el("div",{},el("h3",{},"Лицензия Pro на класс "+c.name),
+  el("p",{},active?"Действует до "+proUntilText({pro_until:c.pro_until})+" · мест: "+c.pro_seats+(st.length>c.pro_seats?". Учеников больше, чем мест: Pro у первых "+c.pro_seats+" по порядку добавления.":"."):"Не подключена: ученики класса на бесплатном тарифе (VEX IQ, ИИ — "+PLAN.free_ai+" обращений в месяц)."),
+  el("p",{class:"hint"},"Лицензия — от "+PLAN.class_min_seats+" учеников. Pro сразу у каждого ученика класса, в том числе у добавленных позже (в пределах мест), а у вас, учителя, — бесплатно."),
+  el("div",{class:"bar"},el("button",{class:"btn sm pri",type:"button",onclick:buy},"Месяц на "+seats+" уч. — "+(seats*PLAN.price).toLocaleString("ru-RU")+" ₽"),
+   el("button",{class:"btn sm",type:"button",onclick:buy},"Год на "+seats+" уч. — "+(seats*PLAN.price_year).toLocaleString("ru-RU")+" ₽")),pm,
+  el("p",{class:"hint",style:"margin-top:10px"},"Есть промокод лицензии на класс?"),lf,lm)));
+ // добавить ученика по ID — ученик подтверждает приглашение у себя в профиле
+ const im=note(""),pend=el("div",{class:"pend"}),inv=el("form",{class:"inline"},el("input",{name:"code",placeholder:"ID ученика, например RC-7K2M9Q",required:true,autocomplete:"off",autocapitalize:"characters"}),el("button",{class:"btn sm pri",type:"submit"},"Пригласить"));
+ const loadPend=async()=>{pend.textContent="";const r=await api("classes/"+c.id+"/invites").catch(()=>[]);if(r.length)pend.append(el("span",{class:"hint"},"Ждут подтверждения: "),...r.map(i=>el("span",{class:"chip"},i.public_id,el("button",{type:"button",class:"chipx","aria-label":"Отменить приглашение",onclick:async()=>{await api("classes/"+c.id+"/invites/"+i.id,{method:"DELETE"});loadPend();}},"×"))));};
+ inv.onsubmit=async e=>{e.preventDefault();try{await api("classes/"+c.id+"/invite",{body:{code:new FormData(inv).get("code")}});im.className="msg ok";im.textContent="Приглашение отправлено. Ученик увидит его в своём профиле и подтвердит.";inv.reset();loadPend();}catch(err){im.className="msg bad";im.textContent=err.message;}};
+ box.append(el("div",{class:"authf wide"},el("h3",{},"Добавить ученика по ID"),el("p",{class:"hint"},"Ученик, который зарегистрировался сам, видит свой ID в профиле. Введите ID — ученик подтвердит приглашение, и только после этого вы увидите его работы."),inv,im,pend));
+ loadPend();
+ const add=el("form",{class:"authf wide"},el("h3",{},"Создать логины для учеников "+c.name),
   el("label",{class:"fld"},el("span",{},"ФИО учеников — по одному в строке (можно оставить пустым)"),el("textarea",{name:"names",rows:"5",placeholder:"Иванов Пётр\nСмирнова Анна"})),
   field("…или просто количество",{name:"count",type:"number",min:"1",max:"60",value:"1"}),
   el("button",{class:"btn pri",type:"submit"},"Создать логины и пароли"),res);
@@ -9825,8 +9855,8 @@ async function cabClasses(box){const cls=await api("classes");
    el("tbody",{},...st.map(s=>{const out=el("td"),m=sum(prog[s.id]);return el("tr",{},el("td",{},fio(s)===s.login?"—":fio(s)),el("td",{},el("code",{},s.login)),el("td",{},m.solved+" из "+m.tried),el("td",{},String(m.best)),el("td",{},String(s.ai_points||0)),el("td",{},when(s.last_seen)),
     el("td",{},el("button",{class:"btn sm pri",type:"button",onclick:()=>showStudentWork(s,c.name,prog[s.id]||{},reviews.filter(r=>r.user_id===s.id))},"Подробно"),
      el("button",{class:"btn sm",type:"button",onclick:e=>saveStudentPdf(e.currentTarget,s,c.name,sol,reviews)},"Сводка PDF"),
-     el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{const r=await api("students/"+s.id+"/reset",{body:{}});out.textContent="";out.append(credsBox([{name:fio(s),login:r.login,password:r.password}],"Новый пароль"));}},"Новый пароль"),
-     el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{if(!confirm("Удалить ученика "+s.login+"?"))return;await api("students/"+s.id,{method:"DELETE"});cabShow();}},"Удалить"),out));}))),
+     s.self_reg?null:el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{const r=await api("students/"+s.id+"/reset",{body:{}});out.textContent="";out.append(credsBox([{name:fio(s),login:r.login,password:r.password}],"Новый пароль"));}},"Новый пароль"),
+     el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{if(!(await confirmBox(s.self_reg?"Убрать ученика "+s.login+" из класса? Его аккаунт сохранится.":"Удалить ученика "+s.login+"? Аккаунт будет удалён.",s.self_reg?"Убрать":"Удалить","Нет")))return;await api("students/"+s.id,{method:"DELETE"});cabShow();}},s.self_reg?"Убрать из класса":"Удалить"),out));}))),
   el("h3",{class:"mh"},"ИИ-оценки учеников"),
   reviews.length?el("table",{class:"tbl"},el("thead",{},el("tr",{},...["Дата","Ученик","Задача","Оценка","Баллы","Комментарий ИИ"].map(h=>el("th",{},h)))),el("tbody",{},...reviews.map(r=>el("tr",{},el("td",{},when(r.created_at)),el("td",{},r.last_name?r.last_name+" "+r.first_name:r.login),el("td",{},r.task_title),el("td",{},String(r.grade)),el("td",{},r.points+" / "+r.max_points),el("td",{},r.feedback.summary||"—"))))):el("p",{class:"hint"},"ИИ-оценок пока нет."),
   el("h3",{class:"mh"},"Последние решения класса"),
@@ -9979,27 +10009,28 @@ function codeStep(f,msg,email,onCode,resend){
  f.onsubmit=async e=>{e.preventDefault();msg.className="msg";msg.textContent="Проверяем…";try{await onCode(new FormData(f).get("code"));}catch(err){msg.className="msg bad";msg.textContent=err.message;}};
  code.querySelector("input").focus();
 }
-function regForm(root,done){
+function regForm(root,done,role){role=role==="teacher"?"teacher":"student";const T=role==="teacher";
  const f=el("form",{class:"authf wide"}),msg=note("");
  const chk=(name,...label)=>el("label",{class:"hwset consent"},el("input",{type:"checkbox",name,required:true}),el("span",{},...label));
- f.append(el("h3",{},"Регистрация"),
-  el("div",{class:"frow"},field("Фамилия",{name:"last_name",autocomplete:"family-name",required:true,maxlength:60}),field("Имя",{name:"first_name",autocomplete:"given-name",required:true,maxlength:60})),
-  el("div",{class:"frow"},field("Школа",{name:"school",required:true,maxlength:120,placeholder:"например, МБОУ СОШ № 5, г. Курск"}),field("Класс",{name:"grade",required:true,maxlength:20,placeholder:"7 «А»"})),
+ f.append(el("h3",{},T?"Регистрация учителя":"Регистрация ученика"),
+  T?el("p",{class:"hint"},"Кабинет учителя: свои классы, ученики по ID или по логинам, статистика и задания. Тариф — бесплатный; с лицензией на класс (от "+PLAN.class_min_seats+" учеников) у учителя Pro бесплатно."):null,
+  el("div",{class:"frow"},field("Фамилия",{name:"last_name",autocomplete:"family-name",required:true,maxlength:60}),field("Имя",{name:"first_name",autocomplete:"given-name",required:true,maxlength:60}),T?field("Отчество",{name:"middle_name",autocomplete:"additional-name",maxlength:60}):null),
+  el("div",{class:"frow"},field(T?"Школа или организация":"Школа",{name:"school",required:true,maxlength:120,placeholder:"например, МБОУ СОШ № 5, г. Курск"}),T?null:field("Класс",{name:"grade",required:true,maxlength:20,placeholder:"7 «А»"})),
   field("Почта",{name:"email",type:"email",autocomplete:"email",required:true,maxlength:120}),
   field("Логин",{name:"login",autocomplete:"username",required:true,pattern:"[A-Za-z0-9._\\-]{3,32}",title:"3–32 латинские буквы, цифры, точка, дефис"}),
   el("div",{class:"frow"},field("Пароль",{name:"password",type:"password",autocomplete:"new-password",required:true,minlength:8}),field("Пароль ещё раз",{name:"password2",type:"password",autocomplete:"new-password",required:true,minlength:8})),
   chk("consent_policy","Я прочитал(а) и принимаю ",el("a",{href:"#legal/privacy",target:"_blank"},"политику конфиденциальности")," и ",el("a",{href:"#legal/terms",target:"_blank"},"пользовательское соглашение"),"."),
   chk("consent_pd","Даю ",el("a",{href:"#legal/consent",target:"_blank"},"согласие на обработку персональных данных"),"."),
-  chk("consent_age","Мне исполнилось 14 лет. Если меньше — согласие даёт и регистрирует меня родитель или законный представитель."),
+  chk("consent_age",T?"Мне исполнилось 18 лет.":"Мне исполнилось 14 лет. Если меньше — согласие даёт и регистрирует меня родитель или законный представитель."),
   el("button",{class:"btn pri",type:"submit"},"Получить код на почту"),msg);
  let data=null;
  const start=()=>api("register/start",{body:data});
  f.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(f));
   if(d.password!==d.password2){msg.className="msg bad";msg.textContent="Пароли не совпадают.";return;}
-  data={email:d.email,login:d.login,password:d.password,last_name:d.last_name,first_name:d.first_name,school:d.school,grade:d.grade,consent_policy:true,consent_pd:true,consent_age:true};
+  data={role,email:d.email,login:d.login,password:d.password,last_name:d.last_name,first_name:d.first_name,middle_name:d.middle_name||"",school:d.school,grade:d.grade||"",consent_policy:true,consent_pd:true,consent_age:true};
   msg.className="msg";msg.textContent="Отправляем письмо…";
   try{const r=await start();if(r.debug_code)console.info("код для проверки:",r.debug_code);
-   codeStep(f,msg,d.email,async code=>{const r2=await api("register/confirm",{body:{email:d.email,code}});accSet(r2.user,r2.token,true);draftPull();done();},start);}
+   codeStep(f,msg,d.email,async code=>{const r2=await api("register/confirm",{body:{email:d.email,code}});accSet(r2.user,r2.token,true);draftPull();if(r2.user.role==="teacher"&&BUILD==="site"){location.hash="#cab";return;}done();},start);}
   catch(err){msg.className="msg bad";msg.textContent=err.message;}};
  root.append(f);
 }
@@ -10028,15 +10059,90 @@ function resetForm(root,done){
 let AUTH_MODE="login";
 function authScreen(root,done){
  const mode=AUTH_MODE,g=el("div",{class:"authgrid"}),again=()=>{root.textContent="";authScreen(root,done);};
- root.append(el("div",{class:"seg wrapseg auth-tabs"},...[["login","Вход"],["reg","Регистрация"],["reset","Забыли пароль?"]].map(([k,n])=>el("button",{type:"button","aria-pressed":String(mode===k),onclick:()=>{AUTH_MODE=k;again();}},n))),g);
- if(mode==="reg")regForm(g,done);
+ root.append(el("div",{class:"seg wrapseg auth-tabs"},...[["login","Вход"],["reg","Регистрация ученика"],["treg","Регистрация учителя"],["reset","Забыли пароль?"]].map(([k,n])=>el("button",{type:"button","aria-pressed":String(mode===k),onclick:()=>{AUTH_MODE=k;again();}},n))),g);
+ if(mode==="reg"||mode==="treg")regForm(g,done,mode==="treg"?"teacher":"student");
  else if(mode==="reset")resetForm(g,()=>{AUTH_MODE="login";again();});
  else{loginForm(g,"student",done);if(BUILD==="site")loginForm(g,"teacher",done);
-  root.append(el("p",{class:"hint auth-note"},"Аккаунт выдал учитель — входите по его логину и паролю. Нет аккаунта — ",el("a",{href:"#",onclick:e=>{e.preventDefault();AUTH_MODE="reg";again();}},"зарегистрируйтесь")," по почте: бесплатный тариф откроется сразу. Войти можно и по почте вместо логина."));}
+  root.append(el("p",{class:"hint auth-note"},"Аккаунт выдал учитель — входите по его логину и паролю. Нет аккаунта — ",el("a",{href:"#",onclick:e=>{e.preventDefault();AUTH_MODE="reg";again();}},"зарегистрируйтесь")," по почте: бесплатный тариф откроется сразу. Учитель — ",el("a",{href:"#",onclick:e=>{e.preventDefault();AUTH_MODE="treg";again();}},"регистрация учителя"),". Войти можно и по почте вместо логина."));}
 }
+// Профиль ученика: ID для учителя, приглашения в класс, текущий класс.
+function studentClassCard(){const box=el("div",{class:"pcard idcard"}),u=ACC.user;
+ const id=u.public_id||"…",copy=el("button",{class:"btn sm",type:"button",onclick:async()=>{try{await navigator.clipboard.writeText(id);copy.textContent="Скопировано";}catch(e){}}},"Скопировать");
+ box.append(el("div",{},el("h3",{},"Ваш ID для учителя"),el("p",{class:"sid"},el("code",{},id),copy),
+  el("p",{class:"hint"},"Сообщите этот ID учителю. Он добавит вас в свой класс, а вы подтвердите приглашение здесь. Без вашего подтверждения учитель не увидит ваши работы.")));
+ const list=el("div",{});box.append(list);
+ api("invites").then(r=>{list.textContent="";
+  if(r.current)list.append(el("p",{class:"plan-line"},"Класс: ",el("b",{},r.current.name)," · учитель: "+r.current.teacher+(r.current.pro_until&&new Date(r.current.pro_until.replace(" ","T")+"Z")>new Date()?" · лицензия класса Pro":"")+" ",
+   el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{if(!(await confirmBox("Выйти из класса «"+r.current.name+"»? Учитель перестанет видеть ваши новые работы.","Да, выйти","Нет")))return;await api("invites/leave",{body:{}});await accRefresh();profileShow();}},"Выйти из класса")));
+  for(const i of r.invites)list.append(el("div",{class:"invite"},el("span",{},"Приглашение в класс ",el("b",{},i.cls)," от учителя ",el("b",{},i.teacher),i.school?" ("+i.school+")":""),
+   el("button",{class:"btn sm pri",type:"button",onclick:async()=>{await api("invites/"+i.id+"/accept",{body:{}});await accRefresh();profileShow();}},"Принять"),
+   el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{await api("invites/"+i.id+"/decline",{body:{}});profileShow();}},"Отклонить")));
+ }).catch(()=>{});
+ return box;}
+// ===== Школа (образовательная организация): кабинет школы, учителя по ID, школьная лицензия =====
+// Аккаунт школы выдаёт администратор платформы. Школа подключает учителей по их ID (учитель подтверждает),
+// видит все классы и учеников своих учителей, применяет школьную лицензию (Pro ученикам и учителям школы).
+const isOrg=()=>!!(ACC.user&&ACC.user.role==="org");
+const ORG={tab:"school"};
+async function cabOrg(root){
+ let d;try{d=await api("org");}catch(e){root.append(note(e.message,"bad"));return;}
+ const o=d.org||{},active=o.pro_until&&new Date(o.pro_until.replace(" ","T")+"Z")>new Date();
+ root.append(el("div",{class:"pcard"},el("div",{},el("h2",{},"Кабинет школы · "+(o.name||"")),el("p",{class:"hint"},"Логин: "+ACC.user.login+" · учителей: "+d.teachers.length+" · учеников: "+d.students)),
+  el("button",{class:"btn ghost",type:"button",onclick:async()=>{if(await accLogout())cabShow();}},"Выйти")),
+  el("div",{class:"seg wrapseg"},...[["school","Школа и учителя"],["classes","Классы"],["students","Все ученики"]].map(([k,n])=>el("button",{type:"button","aria-pressed":String(ORG.tab===k),onclick:()=>{ORG.tab=k;cabShow();}},n))));
+ const box=el("div",{class:"cabbox"});root.append(box);
+ if(ORG.tab==="classes"){try{await cabClasses(box);}catch(e){box.append(note(e.message,"bad"));}return;}
+ if(ORG.tab==="students"){const st=await api("org/students").catch(()=>[]);
+  box.append(el("p",{class:"hint"},"Ученики всех классов ваших учителей: "+st.length+"."),
+   el("table",{class:"tbl"},el("thead",{},el("tr",{},...["Ученик","Логин","Класс","Учитель","Был в сети"].map(h=>el("th",{},h)))),
+    el("tbody",{},...st.map(s=>el("tr",{},el("td",{},[s.last_name,s.first_name].filter(Boolean).join(" ")||"—"),el("td",{},el("code",{},s.login)),el("td",{},s.cls),el("td",{},s.teacher),el("td",{},when(s.last_seen)))))));
+  return;}
+ // школьная лицензия
+ const lm=note(""),lf=el("form",{class:"inline"},el("input",{name:"code",placeholder:"Промокод школьной лицензии RC-…",required:true,autocomplete:"off",autocapitalize:"characters"}),el("button",{class:"btn sm pri",type:"submit"},"Применить"));
+ lf.onsubmit=async e=>{e.preventDefault();try{const r=await api("org/promo",{body:{code:new FormData(lf).get("code")}});lm.className="msg ok";lm.textContent="Школьная лицензия применена: "+r.seats+" учеников до "+proUntilText({pro_until:r.pro_until})+".";setTimeout(cabShow,1800);}catch(err){lm.className="msg bad";lm.textContent=err.message;}};
+ box.append(el("div",{class:"pcard lic"},el("div",{},el("h3",{},"Школьная лицензия Pro"),
+  el("p",{},active?"Действует до "+proUntilText({pro_until:o.pro_until})+" · мест: "+o.pro_seats+(d.students>o.pro_seats?". Учеников больше, чем мест: Pro у первых "+o.pro_seats+" по порядку добавления.":"."):"Не подключена."),
+  el("p",{class:"hint"},"Лицензия — от "+PLAN.class_min_seats+" учеников: Pro у учеников всех классов школы, а у всех учителей школы — бесплатно. Стоимость для школы — по запросу."),
+  await contactButton("Запросить стоимость для школы"),el("p",{class:"hint",style:"margin-top:10px"},"Есть промокод школьной лицензии?"),lf,lm)));
+ // учителя: пригласить по ID
+ const im=note(""),inv=el("form",{class:"inline"},el("input",{name:"code",placeholder:"ID учителя, например RC-4F8K2M",required:true,autocomplete:"off",autocapitalize:"characters"}),el("button",{class:"btn sm pri",type:"submit"},"Пригласить"));
+ inv.onsubmit=async e=>{e.preventDefault();try{await api("org/invite",{body:{code:new FormData(inv).get("code")}});im.className="msg ok";im.textContent="Приглашение отправлено. Учитель подтвердит его в своём кабинете.";setTimeout(cabShow,1200);}catch(err){im.className="msg bad";im.textContent=err.message;}};
+ box.append(el("div",{class:"authf wide"},el("h3",{},"Подключить учителя"),el("p",{class:"hint"},"Учитель регистрируется сам («Профиль» → «Регистрация учителя») и видит свой ID в кабинете учителя. Введите ID — учитель подтвердит, и его классы появятся у школы."),inv,im,
+  d.invites.length?el("div",{class:"pend"},el("span",{class:"hint"},"Ждут подтверждения: "),...d.invites.map(i=>el("span",{class:"chip"},i.public_id,el("button",{type:"button",class:"chipx","aria-label":"Отменить приглашение",onclick:async()=>{await api("org/invites/"+i.id,{method:"DELETE"});cabShow();}},"×")))):null));
+ box.append(el("h3",{class:"mh"},"Учителя школы ("+d.teachers.length+")"),d.teachers.length?el("table",{class:"tbl"},el("thead",{},el("tr",{},...["Учитель","Логин","Классов","Учеников","Был в сети",""].map(h=>el("th",{},h)))),
+  el("tbody",{},...d.teachers.map(t=>el("tr",{},el("td",{},t.nick||[t.last_name,t.first_name,t.middle_name].filter(Boolean).join(" ")),el("td",{},el("code",{},t.login)),el("td",{},String(t.classes)),el("td",{},String(t.students)),el("td",{},when(t.last_seen)),
+   el("td",{},el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{if(!(await confirmBox("Отключить учителя от школы? Его классы перестанут быть видны школе.","Отключить","Нет")))return;await api("org/teachers/"+t.id+"/remove",{body:{}});cabShow();}},"Отключить"))))))
+  :el("p",{class:"hint"},"Учителей пока нет. Пригласите их по ID."));
+}
+// Кнопка «Написать на почту» — адрес из реквизитов оператора (Админ-панель → «Сайт и реквизиты»)
+async function contactButton(text){const s=await api("settings").catch(()=>({}));const mail=String(s.op_email||"").trim();
+ return mail?el("a",{class:"btn",href:"mailto:"+mail+"?subject="+encodeURIComponent("РобоКорд: лицензия для школы")},text+" — "+mail)
+  :el("p",{class:"hint"},"Почта для запросов появится, когда администратор заполнит реквизиты.");}
+// Кабинет учителя: свой ID и приглашения от школ
+function teacherOrgCard(){const box=el("div",{class:"pcard idcard"}),u=ACC.user,id=u.public_id||"…";
+ const copy=el("button",{class:"btn sm",type:"button",onclick:async()=>{try{await navigator.clipboard.writeText(id);copy.textContent="Скопировано";}catch(e){}}},"Скопировать");
+ box.append(el("div",{},el("h3",{},"Ваш ID для школы"),el("p",{class:"sid"},el("code",{},id),copy),el("p",{class:"hint"},"Сообщите ID своей школе: она подключит вас к себе, а вы подтвердите приглашение здесь. Со школьной лицензией у вас Pro бесплатно.")));
+ const list=el("div",{});box.append(list);
+ api("org-invites").then(r=>{
+  if(r.current)list.append(el("p",{class:"plan-line"},"Школа: ",el("b",{},r.current.name),r.current.pro_until&&new Date(r.current.pro_until.replace(" ","T")+"Z")>new Date()?" · школьная лицензия Pro":""," ",
+   el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{if(!(await confirmBox("Отключиться от школы «"+r.current.name+"»?","Да","Нет")))return;await api("org-invites/leave",{body:{}});await accRefresh();cabShow();}},"Отключиться")));
+  for(const i of r.invites)list.append(el("div",{class:"invite"},el("span",{},"Школа ",el("b",{},i.name),i.city?" ("+i.city+")":""," приглашает вас. Школа увидит ваши классы и учеников."),
+   el("button",{class:"btn sm pri",type:"button",onclick:async()=>{await api("org-invites/"+i.id+"/accept",{body:{}});await accRefresh();cabShow();}},"Принять"),
+   el("button",{class:"btn sm ghost",type:"button",onclick:async()=>{await api("org-invites/"+i.id+"/decline",{body:{}});cabShow();}},"Отклонить")));
+ }).catch(()=>{});
+ return box;}
+// Админ-панель: аккаунты школ (выдаёт только администратор платформы)
+function adminOrgAccounts(orgs){const res=el("div"),f=el("form",{class:"authf wide"},el("h3",{},"Школа: создать аккаунт"),
+  el("label",{class:"fld"},el("span",{},"Организация"),el("select",{name:"org_id"},el("option",{value:""},"— новая (впишите ниже) —"),...orgs.map(o=>el("option",{value:o.id},o.name+(o.account?" · уже есть аккаунт "+o.account:""))))),
+  field("Название новой школы",{name:"name",placeholder:"МБОУ «Школа № 1»"}),field("Город",{name:"city"}),el("button",{class:"btn pri",type:"submit"},"Выдать аккаунт школы"),res,
+  el("p",{class:"hint"},"Школа входит через «Вход для учителей и школ», подключает учителей по ID и применяет школьную лицензию. То же делает бот: /neworg."));
+ f.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(f));res.textContent="";
+  try{const r=await api("admin/orgaccount",{body:{org_id:+d.org_id||0,name:d.name,city:d.city}});res.append(credsBox([{name:r.name,login:r.login,password:r.password}],"Аккаунт школы создан"));}catch(err){res.append(note(err.message,"bad"));}};
+ return f;}
 // ===== Тарифы: Бесплатный (VEX IQ 1 и 2 + ограниченный ИИ) и Pro (всё без ограничений) =====
 // Лимит ИИ и срок Pro проверяет сервер; здесь — показ тарифов, промокод, скачивание и замки на наборах.
-const PLAN={price:249,free_ai:15,free_kits:["iq1","iq2"]};
+const PLAN={price:249,price_year:2490,free_ai:15,free_kits:["iq1","iq2"],class_min_seats:5};
+const rub=n=>n.toLocaleString("ru-RU")+" ₽";
 const RELEASE="https://github.com/vbobr31/robocord-site/releases/download/desktop-latest/";
 function isPro(){const u=ACC.user;return !!u&&(u.role==="admin"||!!u.pro);}
 function kitFree(id){return PLAN.free_kits.includes(id);}
@@ -10065,6 +10171,7 @@ const DOWNLOADS=[
  ["Android","Robocord-Android.apk","Откройте скачанный файл и разрешите установку из этого источника. В телефоне работает подключение наборов по Bluetooth."],
 ];
 function planShow(){const root=$("#planRoot");if(!root)return;root.textContent="";
+ const schoolContact=el("div",{});contactButton("Написать на почту").then(b=>schoolContact.append(b));
  const u=ACC.user,pro=isPro();
  root.append(el("p",{class:"plan-now"},!u?"Вы не вошли в аккаунт — работает бесплатная версия.":pro?(u.role!=="admin"?"Ваш тариф: Pro — до "+proUntilText(u):"Ваш тариф: Pro (администратор платформы)."):"Ваш тариф: Бесплатный."));
  const li=(...t)=>el("ul",{},t.map(x=>el("li",{},x)));
@@ -10073,10 +10180,19 @@ function planShow(){const root=$("#planRoot");if(!root)return;root.textContent="
   el("div",{class:"plan"},el("h3",{},"Бесплатный"),el("div",{class:"plan-price"},"0 ₽"),
    li("Конструкторы VEX IQ 1-го и 2-го поколения: 3D-симулятор, программа блоками, подключение робота","Все задачи, карты и курс","ИИ-помощник: "+PLAN.free_ai+" обращений в месяц (проверка, подсказка, решение)"),
    el("p",{class:"hint"},"Этого хватает, чтобы попробовать платформу: примерно на первые две недели занятий.")),
-  el("div",{class:"plan pro"},el("span",{class:"plan-tag"},"Всё без ограничений"),el("h3",{},"Pro"),el("div",{class:"plan-price"},PLAN.price+" ₽",el("small",{}," в месяц")),
-   li("Все конструкторы: VEX IQ, VEX V5, LEGO SPIKE, EV3, WeDo 2.0, Powered Up, Arduino","ИИ-помощник без месячного лимита","Экспорт кода и подключение для любого набора","Все задачи, карты и курс"),
-   el("p",{class:"hint"},"Около 8 ₽ в день — дешевле одного занятия в кружке. Доступ открывается на 30 дней с момента активации."),
-   el("button",{class:"btn pri",type:"button",onclick:()=>{payMsg.textContent="Онлайн-оплата скоро появится. Пока подписку можно активировать промокодом — поле ниже.";payMsg.className="msg";}},pro&&u&&u.role!=="admin"?"Продлить на месяц":"Оформить за "+PLAN.price+" ₽"),payMsg)));
+  el("div",{class:"plan pro"},el("span",{class:"plan-tag"},"Всё без ограничений"),el("h3",{},"Pro"),
+   el("div",{class:"plan-price"},rub(PLAN.price),el("small",{}," в месяц")),
+   el("p",{class:"plan-alt"},"или ",el("b",{},rub(PLAN.price_year)+" в год")," — скидка "+Math.round((1-PLAN.price_year/(PLAN.price*12))*100)+"%, два месяца в подарок"),
+   li("Все конструкторы: VEX IQ, VEX V5, LEGO SPIKE, EV3, WeDo 2.0, Powered Up, Arduino и платы на Linux","Автоматическая прошивка китайских плат и плат без названия","ИИ-помощник без месячного лимита","Все задачи, карты и курс"),
+   el("div",{class:"bar"},el("button",{class:"btn pri",type:"button",onclick:()=>{payMsg.textContent="Онлайн-оплата скоро появится. Пока подписку можно активировать промокодом — поле ниже.";payMsg.className="msg";}},(pro&&u&&u.role!=="admin"?"Продлить":"Оформить")+" на месяц"),
+    el("button",{class:"btn",type:"button",onclick:()=>{payMsg.textContent="Онлайн-оплата скоро появится. Пока подписку можно активировать промокодом — поле ниже.";payMsg.className="msg";}},"На год — "+rub(PLAN.price_year))),payMsg),
+  el("div",{class:"plan"},el("h3",{},"Лицензия на класс"),el("div",{class:"plan-price"},rub(PLAN.price),el("small",{}," за ученика в месяц")),
+   el("p",{class:"plan-alt"},"или ",el("b",{},rub(PLAN.price_year)+" за ученика в год")),
+   li("Для учителей и школ — от "+PLAN.class_min_seats+" учеников","Pro сразу у каждого ученика класса, в том числе у добавленных позже","Учителю — Pro бесплатно","Ученики добавляются по ID или по логинам, выданным учителем"),
+   el("a",{class:"btn",href:"#cab"},u&&u.role==="teacher"?"Оформить в кабинете учителя":"Я учитель — подробнее")),
+  el("div",{class:"plan"},el("h3",{},"Для школ"),el("div",{class:"plan-price"},"По запросу"),
+   li("Аккаунт школы: подключение учителей по ID","Доступ ко всем классам и ученикам школы","Школьная лицензия — от "+PLAN.class_min_seats+" учеников; учителям школы Pro бесплатно","Отчёты по классам и ученикам"),
+   schoolContact)));
  // промокод: один код — одно применение
  const pm=note(""),pf=el("form",{class:"authf wide"},el("h3",{},"Ввести промокод"),
   u?field("Промокод",{name:"code",placeholder:"RC-XXXX-XXXX-XXXX",autocomplete:"off",autocapitalize:"characters",required:true}):el("p",{class:"hint"},"Чтобы применить промокод, ",el("a",{href:"#profile"},"войдите или зарегистрируйтесь"),"."),
@@ -10096,13 +10212,15 @@ function planShow(){const root=$("#planRoot");if(!root)return;root.textContent="
 // админ-панель: выпуск промокодов (то же умеет Телеграм-бот)
 async function cabPromo(root){root.textContent="";
  const out=el("div",{}),msg=note(""),f=el("form",{class:"authf wide"},el("h3",{},"Выпустить промокоды"),
+  el("label",{class:"fld"},el("span",{},"Тип"),el("select",{name:"kind",onchange:e=>{f.querySelector(".seatsf").hidden=e.target.value==="user";}},el("option",{value:"user"},"Личный — для одного аккаунта"),el("option",{value:"class"},"Лицензия на класс — учителю Pro бесплатно"),el("option",{value:"school"},"Лицензия на школу — учителям школы Pro бесплатно"))),
+  Object.assign(field("Учеников в лицензии (от "+PLAN.class_min_seats+")",{name:"seats",type:"number",min:PLAN.class_min_seats,max:500,value:25}),{hidden:true,className:"fld seatsf"}),
   field("На сколько дней Pro",{name:"days",type:"number",min:1,max:3660,value:30,required:true}),field("Сколько штук",{name:"count",type:"number",min:1,max:100,value:1,required:true}),field("Заметка (кому, зачем)",{name:"note",maxlength:120}),
   el("button",{class:"btn pri",type:"submit"},"Создать"),msg,el("p",{class:"hint"},"Каждый промокод срабатывает один раз. То же самое можно сделать в Телеграм-боте командой /promo."));
  const list=async()=>{out.textContent="";try{const r=await api("admin/promo");
-   out.append(el("table",{class:"tbl"},el("tr",{},["Промокод","Дней","Заметка","Создан","Использован"].map(h=>el("th",{},h))),
-    r.codes.map(c=>el("tr",{},el("td",{},el("code",{},c.code)),el("td",{},String(c.days)),el("td",{},c.note||""),el("td",{},(c.created_at||"").slice(0,10)),el("td",{},c.used_at?(c.used_login||"да")+" · "+c.used_at.slice(0,10):"свободен")))));}catch(e){out.append(note(e.message,"bad"));}};
+   out.append(el("table",{class:"tbl"},el("tr",{},["Промокод","Тип","Дней","Заметка","Создан","Использован"].map(h=>el("th",{},h))),
+    r.codes.map(c=>el("tr",{},el("td",{},el("code",{},c.code)),el("td",{},c.kind==="class"?"класс, "+c.seats+" уч.":c.kind==="school"?"школа, "+c.seats+" уч.":"личный"),el("td",{},String(c.days)),el("td",{},c.note||""),el("td",{},(c.created_at||"").slice(0,10)),el("td",{},c.used_at?(c.used_login||"да")+" · "+c.used_at.slice(0,10):"свободен")))));}catch(e){out.append(note(e.message,"bad"));}};
  f.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(f));
-  try{const r=await api("admin/promo",{body:{days:+d.days,count:+d.count,note:d.note}});msg.className="msg ok";msg.textContent="Создано: "+r.codes.join(", ");list();}catch(err){msg.className="msg bad";msg.textContent=err.message;}};
+  try{const r=await api("admin/promo",{body:{days:+d.days,count:+d.count,note:d.note,kind:d.kind,seats:+d.seats||0}});msg.className="msg ok";msg.textContent="Создано: "+r.codes.join(", ");list();}catch(err){msg.className="msg bad";msg.textContent=err.message;}};
  // ручная выдача Pro (то же — команда /pro в Телеграм-боте)
  const pm=note(""),pf=el("form",{class:"authf wide"},el("h3",{},"Выдать Pro вручную"),
   field("Логин или почта ученика или учителя",{name:"login",required:true}),field("Дней (0 — снять Pro)",{name:"days",type:"number",min:0,max:3660,value:30,required:true}),
@@ -10156,9 +10274,10 @@ const LEGAL={
   LP("Соглашение заключается между пользователем и "+o.name+" (далее — Администрация) при регистрации, оформлении подписки или активации промокода."),
   LH("1. Что такое РобоКорд"),LP("Образовательная платформа: 3D-симулятор роботов, программирование блоками и на C++, задачи, курсы, подключение реальных наборов, ИИ-помощник."),
   LH("2. Тарифы"),LUL("Бесплатный: наборы VEX IQ 1-го и 2-го поколения, все задачи и курс, ИИ-помощник — "+PLAN.free_ai+" обращений в месяц.",
-   "Pro — "+PLAN.price+" ₽ за 30 дней: все поддерживаемые наборы и платы, автоматическая загрузка прошивок, ИИ-помощник без месячного лимита.",
+   "Pro — "+PLAN.price+" ₽ за 30 дней или "+PLAN.price_year+" ₽ за 365 дней: все поддерживаемые наборы и платы, автоматическая загрузка прошивок, ИИ-помощник без месячного лимита.",
+   "Лицензия на класс — от "+PLAN.class_min_seats+" учеников, "+PLAN.price+" ₽ за ученика на 30 дней или "+PLAN.price_year+" ₽ за ученика на 365 дней. Pro получают ученики класса в пределах числа мест (по порядку добавления), учитель, оформивший лицензию, — Pro бесплатно на тот же срок.",
    "Тариф выбирают и ученики, и учителя; администраторы платформы пользуются возможностями Pro без оплаты."),
-  LH("3. Оплата и промокоды"),LP("Период Pro отсчитывается с момента оплаты или активации промокода; при продлении дни добавляются к оставшимся. Автоматического списания нет. Промокод одноразовый, даёт указанное в нём число дней Pro, не обменивается на деньги и не восстанавливается после использования. Онлайн-оплата будет доступна после подключения платёжного сервиса; до этого Pro активируется промокодом."),
+  LH("3. Оплата и промокоды"),LP("Период Pro отсчитывается с момента оплаты или активации промокода; при продлении дни добавляются к оставшимся. Автоматического списания нет. Промокод одноразовый (личный — для одного аккаунта, лицензия на класс — для класса учителя), даёт указанное в нём число дней Pro, не обменивается на деньги и не восстанавливается после использования. Онлайн-оплата будет доступна после подключения платёжного сервиса; до этого Pro активируется промокодом."),
   LH("4. Возврат"),LP("Если Pro оплачен, но не работает по нашей вине, мы продлим период или вернём деньги за неиспользованные дни — напишите на "+o.email+". Возврат производится в соответствии с законом «О защите прав потребителей»."),
   LH("5. Правила"),LUL("не передавать свой аккаунт и пароль другим;","не пытаться получить доступ к чужим аккаунтам и данным, не нарушать работу платформы;","не загружать в курсы и карты чужие материалы без права на это и запрещённые законом сведения."),
   LH("6. Ответственность"),LP("Платформа предоставляется «как есть». Мы делаем всё, чтобы она работала стабильно, но не отвечаем за повреждение роботов и плат из-за неправильной сборки, питания или программы пользователя. Перед запуском робота проверяйте, что он стоит на безопасной поверхности."),
