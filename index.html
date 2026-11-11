@@ -9600,7 +9600,8 @@ async function accLogout(){if(!(await confirmBox("Выйти из аккаунт
 // «Выйти» в верхней панели (и в меню «Ещё» на телефоне) — ссылка #logout
 window.addEventListener("hashchange",async()=>{if(location.hash!=="#logout")return;const out=await accLogout();if(out)location.hash="#profile";else history.back();});
 // «был онлайн»: раз в 2 минуты
-setInterval(()=>{if(ACC.token)api("me").catch(()=>{});},120000);
+async function accRefresh(){if(!ACC.token)return;try{const r=await api("me");if(r&&r.user&&ACC.token){ACC.user=r.user;if(lsGet("rc-token",null))lsSet("rc-user",r.user);else ssSet("rc-user",r.user);accNav();}}catch(e){}}
+setInterval(accRefresh,120000);setTimeout(accRefresh,1500);
 const fio=u=>[u.last_name,u.first_name,u.middle_name].filter(Boolean).join(" ")||u.login;
 const when=s=>{if(!s)return "—";const d=new Date(s.replace(" ","T")+"Z");return isNaN(d)?s:d.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});};
 const field=(lab,attrs)=>el("label",{class:"fld"},el("span",{},lab),el("input",attrs));
@@ -9659,7 +9660,7 @@ async function profileShow(){const root=$("#profileRoot");if(!root)return;root.t
  if(!ACC.user){authScreen(root,profileShow);return;}
  const u=ACC.user;
  root.append(el("div",{class:"pcard"},el("div",{},el("h2",{},fio(u)),el("p",{class:"hint"},"Логин: "+u.login+" · "+(ROLE[u.role]||u.role)+(u.school?" · "+u.school+(u.grade?", "+u.grade:""):"")),
-   el("p",{class:"plan-line"},isPro()?(u.role==="student"?"Тариф Pro — до "+proUntilText(u):"Тариф Pro (для учителей бесплатно)"):"Тариф: Бесплатный · ",!isPro()||u.role==="student"?el("a",{href:"#plan"},isPro()?"продлить":"подключить Pro за "+PLAN.price+" ₽/мес"):null)),
+   el("p",{class:"plan-line"},isPro()?(u.role!=="admin"?"Тариф Pro — до "+proUntilText(u)+" · ":"Тариф Pro (администратор платформы)"):"Тариф: Бесплатный · ",u.role!=="admin"?el("a",{href:"#plan"},isPro()?"продлить":"подключить Pro за "+PLAN.price+" ₽/мес"):null)),
   el("div",{class:"bar"},isTeacher()?el("a",{class:"btn pri",href:"#cab"},isAdmin()?"Открыть админ-панель":"Открыть кабинет учителя"):null,
    el("button",{class:"btn ghost",type:"button",onclick:async()=>{if(await accLogout())profileShow();}},"Выйти"))));
  if(u.role!=="admin"){const df=el("details",{class:"danger-zone"},el("summary",{},"Удалить аккаунт"));
@@ -10037,7 +10038,7 @@ function authScreen(root,done){
 // Лимит ИИ и срок Pro проверяет сервер; здесь — показ тарифов, промокод, скачивание и замки на наборах.
 const PLAN={price:249,free_ai:15,free_kits:["iq1","iq2"]};
 const RELEASE="https://github.com/vbobr31/robocord-site/releases/download/desktop-latest/";
-function isPro(){return !!(ACC.user&&ACC.user.pro);}
+function isPro(){const u=ACC.user;return !!u&&(u.role==="admin"||!!u.pro);}
 function kitFree(id){return PLAN.free_kits.includes(id);}
 // подключения: iq1, iq2 (USB), iq2ble (Bluetooth) — бесплатно; остальные — Pro
 function adapterFree(a){const id=Object.keys(HW.adapters).find(k=>HW.adapters[k]===a)||"";return /^iq[12]/.test(id);}
@@ -10065,7 +10066,7 @@ const DOWNLOADS=[
 ];
 function planShow(){const root=$("#planRoot");if(!root)return;root.textContent="";
  const u=ACC.user,pro=isPro();
- root.append(el("p",{class:"plan-now"},!u?"Вы не вошли в аккаунт — работает бесплатная версия.":pro?(u.role==="student"?"Ваш тариф: Pro — до "+proUntilText(u):"Ваш тариф: Pro (учителям и администраторам — без оплаты)."):"Ваш тариф: Бесплатный."));
+ root.append(el("p",{class:"plan-now"},!u?"Вы не вошли в аккаунт — работает бесплатная версия.":pro?(u.role!=="admin"?"Ваш тариф: Pro — до "+proUntilText(u):"Ваш тариф: Pro (администратор платформы)."):"Ваш тариф: Бесплатный."));
  const li=(...t)=>el("ul",{},t.map(x=>el("li",{},x)));
  const payMsg=note("");
  root.append(el("div",{class:"plans"},
@@ -10075,7 +10076,7 @@ function planShow(){const root=$("#planRoot");if(!root)return;root.textContent="
   el("div",{class:"plan pro"},el("span",{class:"plan-tag"},"Всё без ограничений"),el("h3",{},"Pro"),el("div",{class:"plan-price"},PLAN.price+" ₽",el("small",{}," в месяц")),
    li("Все конструкторы: VEX IQ, VEX V5, LEGO SPIKE, EV3, WeDo 2.0, Powered Up, Arduino","ИИ-помощник без месячного лимита","Экспорт кода и подключение для любого набора","Все задачи, карты и курс"),
    el("p",{class:"hint"},"Около 8 ₽ в день — дешевле одного занятия в кружке. Доступ открывается на 30 дней с момента активации."),
-   el("button",{class:"btn pri",type:"button",onclick:()=>{payMsg.textContent="Онлайн-оплата скоро появится. Пока подписку можно активировать промокодом — поле ниже.";payMsg.className="msg";}},pro&&u&&u.role==="student"?"Продлить на месяц":"Оформить за "+PLAN.price+" ₽"),payMsg)));
+   el("button",{class:"btn pri",type:"button",onclick:()=>{payMsg.textContent="Онлайн-оплата скоро появится. Пока подписку можно активировать промокодом — поле ниже.";payMsg.className="msg";}},pro&&u&&u.role!=="admin"?"Продлить на месяц":"Оформить за "+PLAN.price+" ₽"),payMsg)));
  // промокод: один код — одно применение
  const pm=note(""),pf=el("form",{class:"authf wide"},el("h3",{},"Ввести промокод"),
   u?field("Промокод",{name:"code",placeholder:"RC-XXXX-XXXX-XXXX",autocomplete:"off",autocapitalize:"characters",required:true}):el("p",{class:"hint"},"Чтобы применить промокод, ",el("a",{href:"#profile"},"войдите или зарегистрируйтесь"),"."),
@@ -10104,7 +10105,7 @@ async function cabPromo(root){root.textContent="";
   try{const r=await api("admin/promo",{body:{days:+d.days,count:+d.count,note:d.note}});msg.className="msg ok";msg.textContent="Создано: "+r.codes.join(", ");list();}catch(err){msg.className="msg bad";msg.textContent=err.message;}};
  // ручная выдача Pro (то же — команда /pro в Телеграм-боте)
  const pm=note(""),pf=el("form",{class:"authf wide"},el("h3",{},"Выдать Pro вручную"),
-  field("Логин или почта ученика",{name:"login",required:true}),field("Дней (0 — снять Pro)",{name:"days",type:"number",min:0,max:3660,value:30,required:true}),
+  field("Логин или почта ученика или учителя",{name:"login",required:true}),field("Дней (0 — снять Pro)",{name:"days",type:"number",min:0,max:3660,value:30,required:true}),
   el("button",{class:"btn pri",type:"submit"},"Применить"),pm);
  pf.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(pf));
   try{const r=await api("admin/pro",{body:{login:d.login.trim(),days:+d.days}});pm.className="msg ok";pm.textContent=r.user.pro?r.user.login+": Pro до "+proUntilText(r.user):"Pro у "+r.user.login+" снят.";}catch(err){pm.className="msg bad";pm.textContent=err.message;}};
@@ -10156,7 +10157,7 @@ const LEGAL={
   LH("1. Что такое РобоКорд"),LP("Образовательная платформа: 3D-симулятор роботов, программирование блоками и на C++, задачи, курсы, подключение реальных наборов, ИИ-помощник."),
   LH("2. Тарифы"),LUL("Бесплатный: наборы VEX IQ 1-го и 2-го поколения, все задачи и курс, ИИ-помощник — "+PLAN.free_ai+" обращений в месяц.",
    "Pro — "+PLAN.price+" ₽ за 30 дней: все поддерживаемые наборы и платы, автоматическая загрузка прошивок, ИИ-помощник без месячного лимита.",
-   "Учителя и администраторы пользуются возможностями Pro бесплатно."),
+   "Тариф выбирают и ученики, и учителя; администраторы платформы пользуются возможностями Pro без оплаты."),
   LH("3. Оплата и промокоды"),LP("Период Pro отсчитывается с момента оплаты или активации промокода; при продлении дни добавляются к оставшимся. Автоматического списания нет. Промокод одноразовый, даёт указанное в нём число дней Pro, не обменивается на деньги и не восстанавливается после использования. Онлайн-оплата будет доступна после подключения платёжного сервиса; до этого Pro активируется промокодом."),
   LH("4. Возврат"),LP("Если Pro оплачен, но не работает по нашей вине, мы продлим период или вернём деньги за неиспользованные дни — напишите на "+o.email+". Возврат производится в соответствии с законом «О защите прав потребителей»."),
   LH("5. Правила"),LUL("не передавать свой аккаунт и пароль другим;","не пытаться получить доступ к чужим аккаунтам и данным, не нарушать работу платформы;","не загружать в курсы и карты чужие материалы без права на это и запрещённые законом сведения."),
