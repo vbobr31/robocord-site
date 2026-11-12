@@ -9962,7 +9962,14 @@ async function cabAdminKey(box){const msg=note("");
   el("div",{class:"bar"},el("button",{class:"btn sm",type:"button",onclick:()=>{k1.querySelector("input").value=gen();}},"Сгенерировать 15 символов"),el("button",{class:"btn pri",type:"submit"},"Сохранить ключ")),msg);
  f.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(f));if(d.key.length<15){msg.textContent="Ключ — не короче 15 символов.";msg.className="msg bad";return;}
   try{await api("admin/key",{method:"PUT",body:d});f.reset();msg.textContent="Ключ сохранён. Запишите его в надёжное место — восстановить его нельзя.";msg.className="msg ok";}catch(err){msg.textContent=err.message;msg.className="msg bad";}};
- box.append(f);}
+ const st=await api("admin/key").catch(()=>({enabled:true}));
+ const off=el("form",{class:"authf wide"},el("h3",{},st.enabled?"Отключить ключ":"Ключ отключён"),
+  el("p",{class:"hint"},st.enabled?"Без ключа администратор входит на сайте и в приложении только по логину и паролю, и вход запоминается. Это проще, но менее защищено: при утечке пароля доступ к админ-панели получат сразу.":"Сейчас администратор входит по логину и паролю. Чтобы снова включить ключ, сохраните новый ключ выше."),
+  st.enabled?field("Ваш пароль",{name:"password",type:"password",autocomplete:"current-password",required:true}):null,
+  st.enabled?el("button",{class:"btn",type:"submit"},"Отключить ключ"):null,note(""));
+ off.onsubmit=async e=>{e.preventDefault();const m=off.querySelector(".msg");if(!(await confirmBox("Отключить ключ доступа? Администраторы будут входить только по паролю.","Отключить","Нет")))return;
+  try{await api("admin/key/off",{body:Object.fromEntries(new FormData(off))});cabShow();}catch(err){m.textContent=err.message;m.className="msg bad";}};
+ box.append(f,off);}
 async function cabMaps(box){box.append(el("p",{class:"hint"},"Все карты пользователей, включая закрытые."));const b=el("div");box.append(b);await publicMapsInto(b,true);}
 async function cabSite(box){const s=await api("settings");
  const f=el("form",{class:"authf wide"},el("h3",{},"Подвал сайта"),
