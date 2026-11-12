@@ -12,7 +12,7 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B1226;--surface:#121B36;--ink:#EAF0FF;--ink2:#9FB0D6;--line:#26345C;--brand:#5B9BFF;--brand-ink:#04122E;--signal:#FF4A5A;--signal-ink:#1A0006;--grid:#16213F;--danger:#FF8A94;--ok:#5FCB85;--code:#17213F;--scene:#0E1630;--c-move:#5B9BFF;--c-ctrl:#B596E6;--c-sens:#F0A53A;--c-arm:#FF7A86;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0B1226;--surface:#121B36;--ink:#EAF0FF;--ink2:#9FB0D6;--line:#26345C;--brand:#5B9BFF;--brand-ink:#04122E;--signal:#FF4A5A;--signal-ink:#1A0006;--grid:#16213F;--danger:#FF8A94;--ok:#5FCB85;--code:#17213F;--scene:#0E1630;--c-move:#5B9BFF;--c-ctrl:#B596E6;--c-sens:#F0A53A;--c-arm:#FF7A86;color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;padding-block:0;padding-top:env(safe-area-inset-top,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
 h1,h2,h3{font-family:var(--f-display);font-weight:700;line-height:1.15;text-wrap:balance;margin:0}
 h1{font-size:clamp(28px,5vw,48px);letter-spacing:-.01em}h2{font-size:clamp(22px,3.2vw,32px)}h3{font-size:18px}
@@ -298,7 +298,7 @@ html,body{overflow-x:clip}
  body[data-mp="3d"] .simR>.bar>.btn{display:none}
  .fsbtn{padding:6px 10px;font-size:12px}.hud span{font-size:11px;padding:2px 6px}
  .sensors{font-size:11px}
- #mRun{display:grid;grid-template-columns:1fr auto auto;gap:6px;position:fixed;left:8px;right:8px;bottom:calc(62px + env(safe-area-inset-bottom,0px));z-index:55;padding:6px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px}
+ #mRun{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;position:fixed;left:8px;right:8px;bottom:calc(62px + env(safe-area-inset-bottom,0px));z-index:55;padding:6px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px}
  body.fsOn #mRun,body.fsOn nav#nav{display:none}
  .stage.fs{height:100dvh!important}
 }
@@ -306,6 +306,7 @@ nav a[data-v="sim"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20
 nav a[data-v="tasks"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M9%206h11M9%2012h11M9%2018h11M4%206l1%201%202-2M4%2012l1%201%202-2M4%2018l1%201%202-2%22/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M9%206h11M9%2012h11M9%2018h11M4%206l1%201%202-2M4%2012l1%201%202-2M4%2018l1%201%202-2%22/%3E%3C/svg%3E")}
 nav a[data-v="maps"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M9%204L3%206v14l6-2%206%202%206-2V4l-6%202-6-2zM9%204v14M15%206v14%22/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M9%204L3%206v14l6-2%206%202%206-2V4l-6%202-6-2zM9%204v14M15%206v14%22/%3E%3C/svg%3E")}
 nav a[data-v="course"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%205a2%202%200%20012-2h14v16H6a2%202%200%2000-2%202zM4%2019V5M9%208h7%22/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%205a2%202%200%20012-2h14v16H6a2%202%200%2000-2%202zM4%2019V5M9%208h7%22/%3E%3C/svg%3E")}
+nav a[data-v="plan"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%203l2.8%205.7%206.2.9-4.5%204.4%201.1%206.2L12%2017.3l-5.6%202.9%201.1-6.2L3%209.6l6.2-.9z%22/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%203l2.8%205.7%206.2.9-4.5%204.4%201.1%206.2L12%2017.3l-5.6%202.9%201.1-6.2L3%209.6l6.2-.9z%22/%3E%3C/svg%3E")}
 nav a[data-v="profile"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%228%22%20r%3D%224%22/%3E%3Cpath%20d%3D%22M4%2021c1-4%204-6%208-6s7%202%208%206%22/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%228%22%20r%3D%224%22/%3E%3Cpath%20d%3D%22M4%2021c1-4%204-6%208-6s7%202%208%206%22/%3E%3C/svg%3E")}
 nav a[data-v="cab"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%2021V8l9-5%209%205v13M9%2021v-7h6v7%22/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%2021V8l9-5%209%205v13M9%2021v-7h6v7%22/%3E%3C/svg%3E")}
 nav a[data-v="more"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%225%22%20cy%3D%2212%22%20r%3D%221.5%22/%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%221.5%22/%3E%3Ccircle%20cx%3D%2219%22%20cy%3D%2212%22%20r%3D%221.5%22/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%225%22%20cy%3D%2212%22%20r%3D%221.5%22/%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%221.5%22/%3E%3Ccircle%20cx%3D%2219%22%20cy%3D%2212%22%20r%3D%221.5%22/%3E%3C/svg%3E")}
@@ -375,6 +376,9 @@ nav a[data-v="more"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%2
 .chip{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;border:1px solid var(--line);font:600 13px ui-monospace,Menlo,monospace}
 .chipx{border:0;background:none;color:var(--ink2);cursor:pointer;font-size:16px;line-height:1;padding:0 6px}
 .seatin{width:80px;margin-left:6px}
+.aic{max-width:560px;width:100%;display:grid;gap:10px;text-align:left}.aic textarea{width:100%}.aic-q{display:grid;gap:6px;padding:10px;border:1px solid var(--line);border-radius:10px}.aic-q p{margin:0}
+#bAiCustom::after{content:" · Pro";font-size:11px;opacity:.7}
+.aic-photo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.aic-photo img{max-width:160px;max-height:120px;border-radius:8px;border:1px solid var(--line)}
 </style>
 </head><body>
 <header class="top"><div class="wrap">
@@ -465,7 +469,7 @@ nav a[data-v="more"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%2
 <div id="pField"></div><div id="pRobot" hidden></div>
 <p class="hint">Камера: тяните мышью или пальцем, колесо или щипок меняет масштаб.</p>
 </div></div>
-<div id="mRun"><button class="btn pri" id="mGo" type="button">Вывести в 3D</button><button class="btn" id="mStop" type="button" disabled>Стоп</button><button class="btn" id="mReset" type="button">Сброс</button></div>
+<div id="mRun"><button class="btn pri" id="mGo" type="button">Вывести в 3D</button><button class="btn" id="mStop" type="button" disabled>Стоп</button><button class="btn" id="mReset" type="button">Сброс</button><button class="btn" id="mConn" type="button" data-only="app">Робот</button></div>
 </section>
 
 <section class="view" id="v-course" hidden>
@@ -8525,9 +8529,15 @@ function courseModules(c){
 function lessonBlock(i,j,l){return el("div",{class:"lesson"},el("h4",{text:`${i+1}.${j+1} ${l.t}`}),el("dl",null,el("dt",{text:"Цель"}),el("dd",{text:l.g}),el("dt",{text:"Теория"}),el("dd",{text:l.th}),el("dt",{text:"Практика"}),el("dd",null,el("ol",null,l.p.map(x=>el("li",{text:x})))),el("dt",{text:"Проверь себя"}),el("dd",null,el("ul",null,l.q.map(x=>el("li",{text:x})))),el("dt",{text:"Понятия"}),el("dd",null,l.k.map(x=>el("span",{class:"tag",text:x})))),
  l.tasks?el("div",{class:"bar"},l.tasks.filter(id=>TASKS.find(t=>t.id===id)).map(id=>{const t=TASKS.find(t=>t.id===id);return el("a",{class:"btn sm",href:"#sim",onclick:()=>openTask(id)},"Задача "+taskNo(t)+": "+t.t);})):null);}
 function crumbs(...items){return el("nav",{class:"crumbs","aria-label":"Навигация по курсу"},...items.flatMap((x,i)=>[i?el("span",{class:"sep"},"›"):null,x[1]?el("a",{href:x[1]},x[0]):el("b",{},x[0])]));}
+let COURSES_LOADING=false;
 async function renderCourse(args){const root=$("#mods");if(!root)return;args=args||[];root.textContent="";
  const intro=$("#v-course > p.hint");if(intro)intro.hidden=args.length>0;
- if(!COURSES_CACHE||!args.length){COURSES_CACHE=[RC_COURSE];try{const list=await api("courses");COURSES_CACHE.push(...list.map(c=>Object.assign({},c,{id:"t"+c.id})));}catch(e){}}
+ // встроенный курс показывается сразу; курсы учителей подгружаются следом и не задерживают экран
+ if(!COURSES_CACHE)COURSES_CACHE=[RC_COURSE];
+ if(!args.length&&!COURSES_LOADING){COURSES_LOADING=true;api("courses").then(list=>{const fresh=[RC_COURSE,...list.map(c=>Object.assign({},c,{id:"t"+c.id}))];
+   const changed=fresh.length!==COURSES_CACHE.length||fresh.some((c,i)=>!COURSES_CACHE[i]||COURSES_CACHE[i].id!==c.id||COURSES_CACHE[i].updated_at!==c.updated_at);COURSES_CACHE=fresh;
+   if(changed&&(location.hash||"").startsWith("#course"))renderCourse((location.hash.slice(1).split("/").slice(1)).map(decodeURIComponent));}).catch(()=>{}).finally(()=>{COURSES_LOADING=false;});}
+ else if(args.length&&COURSES_CACHE.length===1&&args[0]!==RC_COURSE.id){try{const list=await api("courses");COURSES_CACHE=[RC_COURSE,...list.map(c=>Object.assign({},c,{id:"t"+c.id}))];}catch(e){}}
  const c=args.length?COURSES_CACHE.find(x=>x.id===args[0]):null;
  if(!c){// уровень 1: все курсы
   root.append(el("div",{class:"ccards"},...COURSES_CACHE.map(x=>{const mods=courseModules(x);return el("a",{class:"ccard",href:"#course/"+x.id},
@@ -8985,7 +8995,7 @@ function initBlockly(){
   try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",re);new MutationObserver(re).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});}catch(e){}
  }catch(e){S.ws=null;box.replaceChildren(el("div",{class:"empty",text:"Не удалось запустить редактор блоков: "+e.message}));}}
 // ---------- запуск ----------
-function updBtns(){$("#bRun").disabled=S.running;{const g=$("#mGo");if(g){g.disabled=S.running;$("#mStop").disabled=!S.running;}}if(!$("#bConn")){const fr=$("#fsRun");if(fr){fr.disabled=S.running;$("#fsStop").disabled=!S.running;}$("#bStop").disabled=!S.running;return;}const fr=$("#fsRun");if(fr){fr.disabled=S.running;$("#fsStop").disabled=!S.running;}$("#bRunHw").disabled=S.running||!HW.cur;$("#bConn").disabled=S.running;$("#bStop").disabled=!S.running;}
+function updBtns(){$("#bRun").disabled=S.running;{const g=$("#mGo");if(g){g.disabled=S.running;$("#mStop").disabled=!S.running;}const mc=$("#mConn");if(mc){const on=typeof HW!=="undefined"&&!!HW.cur;mc.textContent=on?"На робота":"Робот";mc.classList.toggle("pri",on);mc.disabled=S.running;}}if(!$("#bConn")){const fr=$("#fsRun");if(fr){fr.disabled=S.running;$("#fsStop").disabled=!S.running;}$("#bStop").disabled=!S.running;return;}const fr=$("#fsRun");if(fr){fr.disabled=S.running;$("#fsStop").disabled=!S.running;}$("#bRunHw").disabled=S.running||!HW.cur;$("#bConn").disabled=S.running;$("#bStop").disabled=!S.running;}
 function resetSim(quiet){if(JOY.active)joyClose();S.running=false;S.gen=null;if(S.ws)try{S.ws.highlightBlock(null);}catch(e){}S.sim=new Sim(S.field,S.cfg);buildCans3D();updBtns();if(!quiet)setMsg("Робот возвращён на старт.");syncRobot();}
 async function startRun(hw){
  if(JOY.active)joyClose();if(S.running)return;
@@ -9019,7 +9029,9 @@ function simInit(){
  if(sv&&fieldDef(sv.id)&&sv.field&&sv.field.start){S.fid=sv.id;S.field=sv.field;if(!S.field.obs)S.field.obs=[];if(!S.field.lines)S.field.lines=[];if(!S.field.zones)S.field.zones=[];}else{S.fid="free";S.field=cl(PRESETS.free);}
  S.cfg=Object.assign({},DEF_CFG,lsGet("rs-cfg",{}));
  document.querySelectorAll("#simTabs button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;renderTabs();});
- $("#bRun").onclick=()=>startRun(false);if($("#bConn")){$("#bRunHw").onclick=()=>startRun(true);$("#bConn").onclick=openConn;}$("#bStop").onclick=stopRun;$("#bReset").onclick=()=>{if(S.running){S.ctx.stop=true;}resetSim();};
+ $("#bRun").onclick=()=>startRun(false);if($("#bConn")){$("#bRunHw").onclick=()=>startRun(true);$("#bConn").onclick=openConn;}
+ // телефон: кнопка «Робот» в нижней панели — подключить (Bluetooth), а после подключения — запустить программу на роботе
+ if($("#mConn"))$("#mConn").onclick=()=>{if(typeof HW!=="undefined"&&HW.cur)startRun(true);else openConn();};$("#bStop").onclick=stopRun;$("#bReset").onclick=()=>{if(S.running){S.ctx.stop=true;}resetSim();};
  $("#bEx").onclick=()=>{if(S.running)return;if(!EXAMPLES[S.fid]){setMsg("Для этой карты нет готового примера — составьте программу сами.","bad");return;}
   if(S.mode!=="blocks"){cppSet(blocksToCpp(EXAMPLES[S.fid]()));setMsg("Пример загружен. Нажмите «Вывести в 3D».");return;}
   if(!S.ws)return;loadWs(EXAMPLES[S.fid]());saveWs();setMsg("Пример загружен. Нажмите «Вывести в 3D».");};
@@ -10184,12 +10196,12 @@ function planShow(){const root=$("#planRoot");if(!root)return;root.textContent="
  const payMsg=note("");
  root.append(el("div",{class:"plans"},
   el("div",{class:"plan"},el("h3",{},"Бесплатный"),el("div",{class:"plan-price"},"0 ₽"),
-   li("Конструкторы VEX IQ 1-го и 2-го поколения: 3D-симулятор, программа блоками, подключение робота","Все задачи, карты и курс","ИИ-помощник: "+PLAN.free_ai+" обращений в месяц (проверка, подсказка, решение)"),
+   li("Конструкторы VEX IQ 1-го и 2-го поколения: 3D-симулятор, программа из блоков и на C++, подключение робота","Задачи из банка задач платформы и задачи от учителя, карты и курс","ИИ-помощник: "+PLAN.free_ai+" обращений в месяц — проверка, подсказка и разбор решения"),
    el("p",{class:"hint"},"Этого хватает, чтобы попробовать платформу: примерно на первые две недели занятий.")),
   el("div",{class:"plan pro"},el("span",{class:"plan-tag"},"Всё без ограничений"),el("h3",{},"Pro"),
    el("div",{class:"plan-price"},rub(PLAN.price),el("small",{}," в месяц")),
    el("p",{class:"plan-alt"},"или ",el("b",{},rub(PLAN.price_year)+" в год")," — скидка "+Math.round((1-PLAN.price_year/(PLAN.price*12))*100)+"%, два месяца в подарок"),
-   li("Все конструкторы: VEX IQ, VEX V5, LEGO SPIKE, EV3, WeDo 2.0, Powered Up, Arduino и платы на Linux","Автоматическая прошивка китайских плат и плат без названия","ИИ-помощник без месячного лимита","Все задачи, карты и курс"),
+   li("Все конструкторы: VEX IQ, VEX V5, LEGO SPIKE, EV3, WeDo 2.0, Powered Up, Arduino и платы на Linux","Автоматическая прошивка китайских плат и плат без названия","ИИ-помощник без месячного лимита","«ИИ: решить свою задачу» — по своей карте или фото поля, с уточняющими вопросами","Все задачи, карты и курс"),
    el("div",{class:"bar"},el("button",{class:"btn pri",type:"button",onclick:()=>{payMsg.textContent="Онлайн-оплата скоро появится. Пока подписку можно активировать промокодом — поле ниже.";payMsg.className="msg";}},(pro&&u&&u.role!=="admin"?"Продлить":"Оформить")+" на месяц"),
     el("button",{class:"btn",type:"button",onclick:()=>{payMsg.textContent="Онлайн-оплата скоро появится. Пока подписку можно активировать промокодом — поле ниже.";payMsg.className="msg";}},"На год — "+rub(PLAN.price_year))),payMsg),
   el("div",{class:"plan"},el("h3",{},"Лицензия на класс"),el("div",{class:"plan-price"},rub(PLAN.price),el("small",{}," за ученика в месяц")),
@@ -10517,6 +10529,58 @@ async function aiLeadersInto(root){
  await load();
 }
 if(ACC.user)setTimeout(()=>aiStatus().then(()=>{if(location.hash==="#tasks")tasksShow();}),0);
+// ===== «Решить свою задачу» (Pro): карта + описание → программа из блоков; ИИ может уточнить до 3 раз. Ничего не сохраняется. =====
+// сжатие фото на устройстве: длинная сторона до 1280 px, JPEG 0,8 (обычно 150–400 КБ)
+function aiShrinkPhoto(file){return new Promise((res,rej)=>{if(!/^image\//.test(file.type||"image/"))return rej(new Error("это не изображение"));
+ const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{const k=Math.min(1,1280/Math.max(img.width,img.height)),c=document.createElement("canvas");
+  c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+  const d=c.toDataURL("image/jpeg",0.8);if(d.length>2700000)return rej(new Error("фото слишком большое"));res(d);};
+ img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("формат не поддерживается"));};img.src=url;});}
+async function aiCustomOpen(){
+ if(!isPro()){await needPro("«ИИ: решить свою задачу»");return;}
+ const old=$("#aiCustom");if(old)old.remove();
+ const close=()=>{box.remove();document.removeEventListener("keydown",key);},key=e=>{if(e.key==="Escape")close();};
+ const sel=el("select",{"aria-label":"Карта"},el("option",{value:"cur"},"Текущая карта в симуляторе"),el("option",{value:"none"},"Без карты — только по фото"));
+ // фото поля или условия: сжимается на устройстве до 1280 px, JPEG
+ let photo=null;const pv=el("div",{class:"aic-photo"});
+ const pin=el("input",{type:"file",accept:"image/*",hidden:true,onchange:async()=>{const f=pin.files&&pin.files[0];if(!f)return;pv.textContent="Обрабатываю фото…";
+  try{photo=await aiShrinkPhoto(f);pv.textContent="";pv.append(el("img",{src:photo,alt:"Фото задачи"}),el("button",{class:"btn sm ghost",type:"button",onclick:()=>{photo=null;pin.value="";pv.textContent="";}},"Убрать фото"));}
+  catch(e){photo=null;pv.textContent="Не удалось открыть фото: "+e.message;}}});
+ const pbtn=el("button",{class:"btn sm",type:"button",onclick:()=>pin.click()},"Приложить фото");
+ const maps={};
+ if(ACC.token){Promise.all([api("maps/mine").catch(()=>[]),api("maps/public").catch(()=>[])]).then(([mine,pub])=>{
+  const add=(label,list)=>{if(!list.length)return;const g=el("optgroup",{label});for(const m of list.slice(0,100)){maps[m.id]=m;g.append(el("option",{value:String(m.id)},m.name));}sel.append(g);};
+  add("Мои карты",mine);add("Общедоступные карты",pub.filter(m=>!mine.some(x=>x.id===m.id)));});}
+ const goal=el("textarea",{rows:"3",maxlength:"600",placeholder:"Например: доехать до финиша, объехав стены, и посигналить; или собрать все красные зоны по очереди"});
+ const qa=el("div",{class:"aic-qa"}),msg=note(""),answers=[];
+ const go=el("button",{class:"btn pri",type:"button"},"Решить");
+ const run=async()=>{
+  const id=sel.value,m=id==="cur"||id==="none"?null:maps[id],field=id==="none"?null:m?(m.data&&m.data.field):S.field;
+  if(!photo&&(!field||!field.start)){msg.className="msg bad";msg.textContent=id==="none"?"Приложите фото задачи или выберите карту.":"На этой карте нет старта робота.";return;}
+  if(goal.value.trim().length<5){msg.className="msg bad";msg.textContent="Опишите, что должен сделать робот.";goal.focus();return;}
+  go.disabled=true;msg.className="msg";msg.textContent="ИИ разбирает карту и задачу…";
+  try{const r=await api("ai/custom",{body:{field,goal:goal.value.trim(),answers,image:photo||undefined}});
+   if(r.question){// уточняющий вопрос: ответ — и снова «Решить»
+    msg.textContent="";const inp=el("input",{type:"text",maxlength:"300",placeholder:"Ваш ответ"});
+    const row=el("div",{class:"aic-q"},el("p",{},el("b",{},"ИИ уточняет: "),r.question),inp,el("button",{class:"btn sm pri",type:"button",onclick:()=>{if(!inp.value.trim())return inp.focus();answers.push({question:r.question,answer:inp.value.trim()});row.replaceWith(el("p",{class:"hint"},"— "+r.question+" "+inp.value.trim()));run();}},"Ответить"));
+    qa.append(row);inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter")row.querySelector("button").click();});go.disabled=false;return;}
+   // решение: открыть карту (если выбрана другая) и загрузить блоки
+   if(m&&typeof openNetMap==="function")openNetMap(m);
+   if(S.task){S.task=null;if(typeof taskBar==="function")taskBar();}
+   aiAssembleSolution(r.solution_program&&r.solution_program.length?r.solution_program:r.solution);
+   setMsg("Программа от ИИ загружена. "+(r.explanation||"")+" Эта задача никуда не записывается — меняйте и запускайте сколько угодно.");
+   close();location.hash="#sim";}
+  catch(e){msg.className="msg bad";msg.textContent=e.message;go.disabled=false;}};
+ go.onclick=run;
+ const box=el("div",{id:"aiCustom",class:"rc-confirm",role:"dialog","aria-modal":"true",onclick:e=>{if(e.target===box)close();}},
+  el("div",{class:"rc-confirm-box aic"},el("h3",{},"ИИ: решить свою задачу"),
+   el("p",{class:"hint"},"Выберите карту или приложите фото и опишите задачу своими словами. ИИ составит программу из блоков; если что-то непонятно — задаст уточняющий вопрос. Это не задание учителя: ничего не сохраняется и баллов нет."),
+   el("label",{class:"fld"},el("span",{},"Карта"),sel),el("div",{class:"bar"},pbtn,el("span",{class:"hint"},"снимок поля или листка с заданием — по желанию")),pin,pv,
+   el("label",{class:"fld"},el("span",{},"Что должен сделать робот"),goal),qa,msg,
+   el("div",{class:"bar"},go,el("button",{class:"btn ghost",type:"button",onclick:close},"Закрыть"))));
+ document.body.append(box);document.addEventListener("keydown",key);goal.focus();
+}
+(function(){const b=$("#bSaveSol");if(b&&b.parentElement&&!$("#bAiCustom"))b.parentElement.append(el("button",{class:"btn sm",type:"button",id:"bAiCustom",onclick:aiCustomOpen,title:"Подписка Pro"},"ИИ: решить свою задачу"));})();
 // ===== PDF-сводка по результатам задач. Формируется локально, без внешних сервисов. =====
 function taskPdfData(){
  const p=tpGet(),rows=TASKS.filter(t=>p[t.id]&&p[t.id].att).map(t=>{const e=p[t.id],cat=TCAT.find(c=>c.id===t.cat);return {id:taskNo(t),title:t.t,cat:cat?cat.n:t.cat,solved:!!e.solved,best:e.solved?(e.best||0):0,max:t.pts,time:e.t,blocks:e.blocks,att:e.att||0,date:e.date||""};});
