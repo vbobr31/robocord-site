@@ -379,6 +379,8 @@ nav a[data-v="more"]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%2
 .aic{max-width:560px;width:100%;display:grid;gap:10px;text-align:left}.aic textarea{width:100%}.aic-q{display:grid;gap:6px;padding:10px;border:1px solid var(--line);border-radius:10px}.aic-q p{margin:0}
 #bAiCustom::after{content:" · Pro";font-size:11px;opacity:.7}
 .aic-photo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.aic-photo img{max-width:160px;max-height:120px;border-radius:8px;border:1px solid var(--line)}
+.pro-badge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;background:#E0313C;color:#fff;font-size:.62em;font-weight:800;letter-spacing:.06em;line-height:1.4;vertical-align:super}
+.foot-mail{font-size:13px;color:#5B6878;margin-top:6px}.foot-mail a{color:inherit}
 </style>
 </head><body>
 <header class="top"><div class="wrap">
@@ -9606,7 +9608,7 @@ function accSet(user,token,remember){ACC.user=user;ACC.token=token;const keep=re
  lsSet("rc-user",keep?user:null);lsSet("rc-token",keep?token:null);ssSet("rc-user",keep?null:user);ssSet("rc-token",keep?null:token);if(typeof tpInit==="function")tpInit();if(typeof aiReset==="function")aiReset();if(typeof utLoaded!=="undefined")utLoaded=false;accNav();}
 const isAdmin=()=>ACC.user&&ACC.user.role==="admin",isTeacher=()=>ACC.user&&(ACC.user.role==="teacher"||ACC.user.role==="admin");
 const ROLE={student:"ученик",teacher:"учитель",org:"школа",admin:"владелец платформы"};
-function accNav(){const a=$("#navAcc");if(a)a.textContent=ACC.user?ACC.user.login:(BUILD==="site"?"Войти":"Профиль");
+function accNav(){const a=$("#navAcc");if(a){a.textContent=ACC.user?ACC.user.login:(BUILD==="site"?"Войти":"Профиль");if(ACC.user&&typeof isPro==="function"&&isPro())a.append(el("span",{class:"pro-badge",title:"Подписка Pro активна"},"PRO"));}
  // «Учителям» на сайте виден всем (там вход), в приложении — только учителям и администраторам как их панель
  const c=$("#navCab");if(c){c.textContent=isAdmin()?"Админ-панель":isTeacher()?"Кабинет учителя":ACC.user&&ACC.user.role==="org"?"Кабинет школы":"Учителям";c.hidden=BUILD==="app"&&!isTeacher()&&!(ACC.user&&ACC.user.role==="org");}
  const o=$("#navOut");if(o)o.hidden=!ACC.user;
@@ -9748,6 +9750,12 @@ async function publicMapsInto(box,all){box.textContent="";box.append(note("За�
   box.append(list.length?el("div",{class:"mgrid"},...list.map(netMapCard)):el("p",{class:"hint"},"Общедоступных карт пока нет. Сохраните свою карту и отметьте «Открыть в общий доступ»."));}
  catch(e){box.textContent="";box.append(note(e.message,"bad"));}}
 
+// Поддержка — письмом: адрес из реквизитов (op_email), иначе общий ящик платформы. Письмо открывается с темой и логином.
+const SUPPORT_MAIL="robocord.noreply@yandex.ru";
+function supportAddr(s){const m=String((s&&s.op_email)||"").trim();return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)?m:SUPPORT_MAIL;}
+function supportMail(s){const who=ACC.user?"Логин: "+ACC.user.login+"\n":"";
+ return "mailto:"+supportAddr(s)+"?subject="+encodeURIComponent("РобоКорд: вопрос в поддержку")+"&body="+encodeURIComponent("Здравствуйте!\n\nОпишите вопрос или проблему:\n\n\n"+who+"Устройство: "+(MOBILE?"телефон":BUILD==="app"?"приложение для компьютера":"сайт")+"\n");}
+function supportHref(s){return s&&s.link_support?s.link_support:supportMail(s);}
 // ---------- подвал сайта: текст и ссылки (VK, Telegram, MAX, поддержка) — меняются в админ-панели ----------
 const SOC=[["link_vk","ВКонтакте","vk"],["link_tg","Telegram","tg"],["link_max","MAX","max"]];
 async function footerShow(){const f=$("#siteFoot");if(!f)return;let s={};try{s=await api("settings");}catch(e){}
@@ -9757,7 +9765,8 @@ async function footerShow(){const f=$("#siteFoot");if(!f)return;let s={};try{s=a
  const icon=k=>el("span",{class:"soc soc-"+k},k==="vk"?"VK":k==="tg"?"TG":"MAX");
  f.append(el("div",{class:"wrap footin"},el("p",{},s.footer_text||"© 2026 РобоКорд. Образовательная платформа по робототехнике."),
   el("div",{class:"socs"},...SOC.map(([k,n,c])=>el("a",{class:"socl"+(s[k]?"":" empty"),href:s[k]||"#",target:s[k]?"_blank":null,rel:"noopener","aria-label":n,title:s[k]?n:n+" — ссылка появится позже",onclick:s[k]?null:e=>e.preventDefault()},icon(c))),
-   el("a",{class:"btn sm"+(s.link_support?"":" ghost"),href:s.link_support||"#",target:s.link_support?"_blank":null,rel:"noopener",onclick:s.link_support?null:e=>e.preventDefault()},"Поддержка"))),
+   el("a",{class:"btn sm",href:supportHref(s),target:/^https:/i.test(supportHref(s))?"_blank":null,rel:"noopener"},"Поддержка"))),
+  el("p",{class:"wrap foot-mail"},"Почта поддержки: ",el("a",{href:supportMail(s)},supportAddr(s))),
   el("nav",{class:"wrap foot-legal"},el("a",{href:"#plan"},"Тарифы и скачивание"),el("a",{href:"#legal/privacy"},"Политика конфиденциальности"),el("a",{href:"#legal/consent"},"Согласие на обработку данных"),el("a",{href:"#legal/terms"},"Пользовательское соглашение"),el("a",{href:"#legal/cookies"},"Cookie")));}
 
 // ---------- кабинет (сайт): вход для учеников / учителей, админ-панель, кабинет учителя ----------
@@ -9774,7 +9783,8 @@ async function cabShow(){const root=$("#cab");if(!root)return;root.textContent="
  const nickF=el("form",{class:"inline nickf"},el("input",{name:"nick",maxlength:"40",value:ACC.user.nick||"",placeholder:"Ник для учеников, например «Ирина Петровна»","aria-label":"Ник, который видят ученики"}),el("button",{class:"btn sm",type:"submit"},"Сохранить ник"));
  nickF.onsubmit=async e=>{e.preventDefault();try{const r=await api("profile",{method:"PUT",body:{nick:new FormData(nickF).get("nick")}});ACC.user=Object.assign(ACC.user,{nick:r.user.nick});accSet(ACC.user,ACC.token,!!lsGet("rc-token",null));COURSES_CACHE=null;utLoaded=false;cabShow();}catch(err){alert(err.message);}};
  root.append(el("div",{class:"pcard"},el("div",{},el("h2",{},(isAdmin()?"Админ-панель · ":"Кабинет учителя · ")+(ACC.user.nick||fio(ACC.user))),el("p",{class:"hint"},"Логин: "+ACC.user.login+" · ученики видят вас как «"+(ACC.user.nick||fio(ACC.user))+"»"),nickF),
-  el("button",{class:"btn ghost",type:"button",onclick:async()=>{if(await accLogout())cabShow();}},"Выйти")),
+  el("div",{class:"bar"},!isAdmin()?el("a",{class:"btn pri",href:"#plan"},isPro()?"Продлить Pro или лицензия на класс":"Купить Pro или лицензию на класс"):null,
+   el("button",{class:"btn ghost",type:"button",onclick:async()=>{if(await accLogout())cabShow();}},"Выйти"))),
   el("div",{class:"seg wrapseg"},...tabs.map(([k,n])=>el("button",{type:"button","aria-pressed":String(CAB.tab===k),onclick:()=>{CAB.tab=k;cabShow();}},n))));
  if(ACC.user.role==="teacher")root.append(teacherOrgCard());
  const box=el("div",{class:"cabbox"});root.append(box);
