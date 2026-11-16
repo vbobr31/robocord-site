@@ -451,6 +451,15 @@ body.presentation-home .rc-menu summary{border:0!important;background:transparen
 @media(max-width:480px){.rc-landing h1{letter-spacing:-.06em}.landing-rail{right:0}.landing-section h2{padding-right:12px}}
 </style>
 <style>
+.top-preferences{display:flex;align-items:center;gap:12px;margin-right:14px;pointer-events:auto}.preference-group{display:flex;gap:3px;padding:3px;border:1px solid #93afd12b;border-radius:999px;background:#819bc611}.preference-group button{display:flex;gap:5px;align-items:center;justify-content:center;min-height:34px;min-width:36px;padding:5px 9px;border:0;border-radius:999px;background:transparent;color:var(--ink);font:600 11px 'Manrope',sans-serif;cursor:pointer}.presentation-home .preference-group button{color:#e7efff}.preference-group button[aria-pressed=true]{background:#8eabd332;box-shadow:inset 0 0 0 1px #9bb7e52b}.preference-group button:focus-visible{outline:2px solid #6199ff;outline-offset:2px}.language-note{flex-basis:100%;font-size:12px;color:#a5b5d0}.presentation-home .top .wrap{align-items:center}
+html[data-home-theme=light] body.presentation-home,html[data-home-theme=light] .rc-landing,html[data-home-theme=light] .rc-landing .landing-slide,html[data-home-theme=light] .landing-footer{background:#f0f4fc;color:#152641}
+html[data-home-theme=light] .landing-slide::before{background:radial-gradient(ellipse at 80% 42%,#8fb6ff50,transparent 58%),radial-gradient(ellipse at 10% 80%,#c4beff40,transparent 60%)}
+html[data-home-theme=light] .rc-landing h1,html[data-home-theme=light] .rc-landing h2,html[data-home-theme=light] .slide-brand{color:#14243e}
+html[data-home-theme=light] .landing-lead,html[data-home-theme=light] .landing-section p:not(.landing-kicker){color:#3b506f}
+html[data-home-theme=light] .landing-kicker{color:#456391!important}html[data-home-theme=light] .landing-link{color:#173966!important;background:#ffffff70;border-color:#8aadd155}html[data-home-theme=light] .landing-actions .landing-link:first-child{background:#173f7b;color:#fff!important}html[data-home-theme=light] .slide-controls button{color:#173966;background:#fff8;border-color:#8ca8cf70}html[data-home-theme=light] .slide-controls a,html[data-home-theme=light] .landing-footer a,html[data-home-theme=light] .landing-footer button{color:#244a81}html[data-home-theme=light] .landing-rail button[aria-current=step]::after{background:#1459d9}html[data-home-theme=light] .landing-diagram text{fill:#244a81}html[data-home-theme=light] .presentation-home .preference-group button{color:#1b3559}html[data-home-theme=light] .presentation-home .rc-menu summary{color:#173966!important}html[data-home-theme=light] .language-note{color:#405a80}
+@media(max-width:600px){.presentation-home .top .wrap{padding:12px 12px!important}.top-preferences{gap:6px;margin-right:3px}.preference-group button{min-width:30px;padding:4px 7px}.preference-group button span:last-child{display:none}.slide-brand{top:25px;left:20px;font-size:12px;gap:5px}.slide-brand img{width:27px;height:25px}.top-preferences .preference-group{padding:2px}.presentation-home .rc-menu summary{min-width:32px}}
+</style>
+<style>
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
@@ -11050,9 +11059,7 @@ new MutationObserver(()=>mountPasswordMeters()).observe(document.body,{childList
  const nav=document.querySelector("#nav");if(!nav)return;document.querySelector("#navMore")?.remove();nav.querySelector("#navAcc")?.classList.remove("nm");
  const menu=el("details",{class:"rc-menu"}),summary=el("summary",{"aria-label":"Открыть меню разделов",title:"Меню"},"•••"),panel=el("div",{class:"rc-menu-panel"});
  for(const a of [...nav.children]){panel.append(a);}
- const theme=el("select",{"aria-label":"Оформление"});for(const [v,t] of [["light","Светлая"],["dark","Тёмная"],["mono","Чёрно-белая"]])theme.append(el("option",{value:v},t));
- theme.value=lsGet("rc-theme","light");const apply=()=>{document.documentElement.dataset.theme=theme.value==="mono"?"light":theme.value;document.documentElement.dataset.mono=String(theme.value==="mono");lsSet("rc-theme",theme.value);};theme.onchange=apply;apply();
- panel.append(el("label",{class:"fld"},el("span",{},"Тема интерфейса"),theme));panel.append(el("button",{type:"button",class:"btn",onclick:()=>{menu.open=false;cookiePreferences();}},"Настройки cookies"));menu.append(summary,panel);nav.append(menu);panel.addEventListener("click",e=>{if(e.target.closest("a"))menu.open=false;});document.addEventListener("keydown",e=>{if(e.key==="Escape")menu.open=false;});
+ panel.append(el("button",{type:"button",class:"btn",onclick:()=>{menu.open=false;cookiePreferences();}},"Настройки cookies"));menu.append(summary,panel);nav.append(menu);panel.addEventListener("click",e=>{if(e.target.closest("a"))menu.open=false;});document.addEventListener("keydown",e=>{if(e.key==="Escape")menu.open=false;});
 })();
 // Shared start page for web, desktop and mobile. No onboarding modal.
 (function(){
@@ -11082,6 +11089,34 @@ new MutationObserver(()=>mountPasswordMeters()).observe(document.body,{childList
  const diagram=el('div',{class:'landing-diagram','aria-label':'Схема маршрута робота: от старта к цели',role:'img'});
  diagram.innerHTML='<svg viewBox="0 0 500 500" aria-hidden="true"><defs><pattern id="routeGrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#7697d9" stroke-opacity=".16"/></pattern></defs><rect x="30" y="30" width="440" height="440" rx="42" fill="url(#routeGrid)" stroke="#749af0" stroke-opacity=".3"/><path d="M110 380 V150 Q110 110 150 110 H350 Q390 110 390 150 V350 Q390 390 350 390 H260" fill="none" stroke="#6a9cff" stroke-width="4" stroke-dasharray="9 9"/><circle cx="110" cy="380" r="12" fill="#b3d3ff"/><circle cx="260" cy="390" r="22" fill="none" stroke="#b3d3ff" stroke-width="3"/><g transform="translate(345 150) rotate(90)"><rect x="-32" y="-27" width="64" height="54" rx="15" fill="#eaf2ff"/><rect x="-23" y="-36" width="20" height="12" rx="4" fill="#4473c7"/><rect x="-23" y="24" width="20" height="12" rx="4" fill="#4473c7"/><circle cx="15" cy="-10" r="5" fill="#1459d9"/><circle cx="15" cy="10" r="5" fill="#1459d9"/></g><text x="160" y="252" fill="#d0dfff" font-size="17" font-family="Manrope, sans-serif">ИДЕЯ → АЛГОРИТМ</text><text x="172" y="280" fill="#81a5ed" font-size="15" font-family="Manrope, sans-serif">→ ДВИЖЕНИЕ</text></svg>';
  slides[0].append(diagram);
+})();
+// Language of the introduction and navigation; authored learning materials retain their language.
+(function(){
+ const nav=document.querySelector('#nav');if(!nav)return;
+ const controls=el('div',{class:'top-preferences'}),langs=el('div',{class:'preference-group',role:'group','aria-label':'Язык / Language'}),themes=el('div',{class:'preference-group',role:'group','aria-label':'Тема / Theme'});
+ let language=lsGet('rc-language','ru');if(!['ru','en'].includes(language))language='ru';
+ const root=document.querySelector('#v-home'),slides=[...root.querySelectorAll('.landing-slide')];
+ const english=[
+ ['ROBOCORD / EDUCATIONAL ROBOTICS','From your first command\nto your own robot.','Build a program, test it on a virtual field, and transfer your algorithm to a compatible robotics kit.'],
+ ['YOUR PLACE IN THE PROJECT','Start with an account','Save solutions and return to your lessons. Teachers organise classes; students complete tasks and review their results.'],
+ ['PROGRAMMING','Command. Run. Result.','Build an algorithm with blocks or use educational C++. See how your program changes the robot’s movement in the lab.'],
+ ['PRACTICE','Every task has a clear goal','Navigate routes, use sensors, pick up and carry objects. Refine your algorithm and compare runs.'],
+ ['COURSES','Learn one step at a time','Modules, theory, practical exercises and self-check questions. Teacher-created courses extend the built-in curriculum.'],
+ ['YOUR EXPERIMENTS','Create your test conditions','Choose a field, move objects and test how reliably your solution works. Physical robot connections require the app and a compatible device.'],
+ ['GO FURTHER','Choose your access','The free plan includes VEX IQ generations 1 and 2 and the task bank. Pro adds more supported kits and AI features.']];
+ const bindings=[];const bind=(node,en)=>{if(node)bindings.push({node,ru:node.textContent,en});};
+ slides.forEach((s,i)=>{bind(s.querySelector('.landing-kicker'),english[i][0]);bind(s.querySelector('h1,h2'),english[i][1]);bind(s.querySelector('.landing-lead')||s.querySelector('div:not(.landing-index) > p:not(.landing-kicker)'),english[i][2]);});
+ const ctas=['Get started ↗','Open the lab ↗','Sign up / Sign in ↗','Start programming ↗','Choose a task ↗','Explore courses ↗','Open fields ↗','Plans and apps ↗'];root.querySelectorAll('.landing-link').forEach((n,i)=>bind(n,ctas[i]));
+ bind(root.querySelector('.landing-scroll'),'Scroll down to explore ↓');bind(root.querySelector('.landing-footer span'),'RoboCord · Learn through experiments');bind(root.querySelector('.landing-footer a'),'Privacy');bind(root.querySelector('.landing-footer button'),'Cookie settings');
+ const names={home:'About',course:'Courses',sim:'Programming',tasks:'Tasks',maps:'Fields',plan:'Plans',profile:'Profile',cab:'Teaching',logout:'Sign out'};
+ nav.querySelectorAll('a[data-v]').forEach(n=>bind(n,names[n.dataset.v]||n.textContent));
+ bind(nav.querySelector('.rc-menu-panel button'),'Cookie settings');
+ const note=el('p',{class:'language-note'},'');root.querySelector('.landing-footer').append(note);
+ const langButtons={};for(const [id,flag,label] of [['ru','🇷🇺','Русский'],['en','🇬🇧','English']]){const b=el('button',{type:'button',title:label,'aria-label':label,onclick:()=>setLanguage(id)},el('span',{'aria-hidden':'true'},flag),el('span',{},id.toUpperCase()));langButtons[id]=b;langs.append(b);}
+ function setLanguage(id){language=id;lsSet('rc-language',id);for(const v of bindings)v.node.textContent=v[id];document.documentElement.lang=id;for(const [k,b] of Object.entries(langButtons))b.setAttribute('aria-pressed',String(k===id));note.textContent=id==='en'?'The introduction and navigation are available in English. Lessons and the workspace are currently in Russian.':'';slides.forEach((s,i)=>{const dot=root.querySelectorAll('.landing-rail button')[i];dot?.setAttribute('aria-label',s.querySelector('h1,h2').textContent);s.querySelectorAll('.slide-controls button').forEach(b=>b.setAttribute('aria-label',id==='en'?(b.textContent==='↑'?'Previous screen':'Next screen'):(b.textContent==='↑'?'Предыдущий экран':'Следующий экран')));});}
+ const themeButtons={};function setTheme(id){document.documentElement.dataset.theme=id;document.documentElement.dataset.homeTheme=id;document.documentElement.dataset.mono='false';lsSet('rc-theme',id);lsSet('rc-home-theme',id);for(const [k,b] of Object.entries(themeButtons))b.setAttribute('aria-pressed',String(k===id));}
+ for(const [id,icon,label] of [['light','☀','Светлая / Light'],['dark','☾','Тёмная / Dark']]){const b=el('button',{type:'button',title:label,'aria-label':label,onclick:()=>setTheme(id)},icon);themeButtons[id]=b;themes.append(b);}
+ controls.append(langs,themes);nav.prepend(controls);setLanguage(language);setTheme(lsGet('rc-home-theme','dark'));
 })();
 // Only canonical, allowlisted providers become frames. Arbitrary HTML is never embedded.
 function courseVideo(raw){
