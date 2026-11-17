@@ -10306,13 +10306,14 @@ const ssSet=(k,v)=>{try{if(v==null)sessionStorage.removeItem(k);else sessionStor
 const ACC={user:lsGet("rc-user",null)||ssGet("rc-user"),token:lsGet("rc-token",null)||ssGet("rc-token")};
 // Запросы независимы: медленный баланс API не должен блокировать вход, задачи и настройки.
 function api(path,opt){return apiRequest(path,opt,ACC.token);}
-async function apiRequest(path,opt,token){opt=opt||{};const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);
- let r;try{r=await fetch(API+"/api/"+path,{method:opt.method||(opt.body?"POST":"GET"),headers:Object.assign({"content-type":"application/json"},token?{authorization:"Bearer "+token}:{}),body:opt.body?JSON.stringify(opt.body):undefined,signal:controller.signal});}
- catch(e){throw new Error(e.name==="AbortError"?"Сервер не ответил вовремя. Попробуйте ещё раз.":"нет связи с сервером РобоКорд. Проверьте интернет.");}
- finally{clearTimeout(timer);}
- const d=await r.json().catch(()=>({}));
- if(r.status===401&&token&&token===ACC.token&&path!=="login"){accSet(null,null);}
- if(!r.ok)throw Object.assign(new Error(d.error||("ошибка "+r.status)),{data:d,status:r.status});return d;}
+async function apiRequest(path,opt,token){
+ opt=opt||{};const timeout=opt.timeoutMs||(/^ai\/(check|help|solve|solutions|custom)$/.test(path)?90000:15000),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
+ try{const r=await fetch(API+"/api/"+path,{method:opt.method||(opt.body?"POST":"GET"),headers:Object.assign({"content-type":"application/json"},token?{authorization:"Bearer "+token}:{}),body:opt.body?JSON.stringify(opt.body):undefined,signal:controller.signal});
+  let d;try{d=await r.json();}catch(e){if(e.name==="AbortError")throw e;throw new Error("Сервер вернул некорректный ответ. Попробуйте ещё раз.");}
+  if(r.status===401&&token&&token===ACC.token&&path!=="login")accSet(null,null);
+  if(!r.ok)throw Object.assign(new Error(d.error||("ошибка "+r.status)),{data:d,status:r.status});return d;
+ }catch(e){if(e.name==="AbortError")throw new Error("Сервер не ответил вовремя. Попробуйте ещё раз.");if(e instanceof TypeError)throw new Error("нет связи с сервером РобоКорд. Проверьте интернет.");throw e;}finally{clearTimeout(timer);}
+}
 function accSet(user,token,remember){ACC.user=user;ACC.token=token;const keep=remember!==false;
  lsSet("rc-user",keep?user:null);lsSet("rc-token",keep?token:null);ssSet("rc-user",keep?null:user);ssSet("rc-token",keep?null:token);if(typeof tpInit==="function")tpInit();if(typeof aiReset==="function")aiReset();if(typeof utLoaded!=="undefined")utLoaded=false;accNav();}
 const isAdmin=()=>ACC.user&&ACC.user.role==="admin",isTeacher=()=>ACC.user&&(ACC.user.role==="teacher"||ACC.user.role==="admin");
@@ -10375,17 +10376,15 @@ function loginForm(root,kind,done){
  const P2=kind==="reg"?field("Пароль ещё раз",{name:"password2",type:"password",autocomplete:"new-password",required:true}):null;
  f.append(...[el("h3",{},kind==="reg"?"Регистрация":kind==="teacher"?"Вход для учителей, школ и администраторов":"Вход для учеников"),L,P,P2,
   kind==="reg"?null:el("label",{class:"hwset"},el("input",{type:"checkbox",name:"remember",checked:true}),"Запомнить меня"),
-  kind==="reg"?null:Object.assign(field("Ключ доступа администратора (15 символов)",{name:"admin_key",type:"password",autocomplete:"off"}),{hidden:true,className:"fld akey"}),
   el("button",{class:"btn pri",type:"submit"},kind==="reg"?"Создать аккаунт":"Войти"),msg].filter(Boolean));
  if(kind==="reg")f.append(el("p",{class:"hint"},"Логин — латинские буквы и цифры. Пароль — не короче 6 символов."));
- f.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(f));
+ f.onsubmit=async e=>{e.preventDefault();if(f.dataset.pending)return;const d=Object.fromEntries(new FormData(f));
   if(kind==="reg"&&d.password!==d.password2){msg.textContent="Пароли не совпадают.";msg.className="msg bad";return;}
-  msg.textContent="Подождите…";msg.className="msg";
-  try{const r=await api(kind==="reg"?"register":"login",{body:{login:d.login,password:d.password,password2:d.password2,role:kind==="teacher"?"teacher":undefined,remember:kind==="reg"||d.remember==="on",admin_key:d.admin_key||undefined}});accSet(r.user,r.token,r.remember!==false&&(kind==="reg"||d.remember==="on"));draftPull();
+  f.dataset.pending="1";f.querySelector('button[type="submit"]').disabled=true;msg.textContent="Подождите…";msg.className="msg";
+  try{const r=await api(kind==="reg"?"register":"login",{body:{login:d.login,password:d.password,password2:d.password2,role:kind==="teacher"?"teacher":undefined,remember:kind==="reg"||d.remember==="on"}});accSet(r.user,r.token,r.remember!==false&&(kind==="reg"||d.remember==="on"));draftPull();
    if(r.user.role!=="student"&&location.hash!=="#cab"){location.hash="#cab";return;}done();}
   catch(err){msg.textContent=err.message;msg.className="msg bad";
-   // администратор: сервер просит ключ доступа — показываем поле и ставим в него курсор
-   if(err.data&&err.data.need_admin_key){const k=f.querySelector(".akey");if(k){k.hidden=false;k.querySelector("input").focus();}}}};
+  }finally{f.dataset.pending="";f.querySelector('button[type="submit"]').disabled=false;}};
  root.append(f);}
 
 // ---------- профиль (приложение и сайт) ----------
@@ -10489,7 +10488,7 @@ async function cabShow(){const root=$("#cab");if(!root)return;root.textContent="
   root.append(el("p",{class:"hint"},"Ученики и учителя регистрируются сами: «Профиль» → «Регистрация». Ученику логин может выдать и учитель. Аккаунт школы выдаёт администратор РобоКорд."));return;}
  if(isOrg()){await cabOrg(root);return;}
  if(!isTeacher()){location.hash="#profile";return;}
- const tabs=isAdmin()?[["stats","Статистика"],["ai","ИИ и API"],["admins","Администраторы"],["teachers","Школы и учителя"],["students","Ученики"],["classes","Мои классы"],["tasks","Задачи"],["courses","Курсы"],["maps","Все карты"],["site","Сайт и реквизиты"],["akey","Ключ доступа"],["promo","Промокоды"]]:[["classes","Мои классы"],["tasks","Мои задачи"],["courses","Курсы"]];
+ const tabs=isAdmin()?[["stats","Статистика"],["ai","ИИ и API"],["admins","Администраторы"],["teachers","Школы и учителя"],["students","Ученики"],["classes","Мои классы"],["tasks","Задачи"],["courses","Курсы"],["maps","Все карты"],["site","Сайт и реквизиты"],["promo","Промокоды"]]:[["classes","Мои классы"],["tasks","Мои задачи"],["courses","Курсы"]];
  if(!tabs.find(t=>t[0]===CAB.tab))CAB.tab=tabs[0][0];
  const nickF=el("form",{class:"inline nickf"},el("input",{name:"nick",maxlength:"40",value:ACC.user.nick||"",placeholder:"Ник для учеников, например «Ирина Петровна»","aria-label":"Ник, который видят ученики"}),el("button",{class:"btn sm",type:"submit"},"Сохранить ник"));
  nickF.onsubmit=async e=>{e.preventDefault();try{const r=await api("profile",{method:"PUT",body:{nick:new FormData(nickF).get("nick")}});ACC.user=Object.assign(ACC.user,{nick:r.user.nick});accSet(ACC.user,ACC.token,!!lsGet("rc-token",null));COURSES_CACHE=null;utLoaded=false;cabShow();}catch(err){alert(err.message);}};
@@ -11060,16 +11059,17 @@ function cookiePreferences(){
  document.body.append(d);d.addEventListener("close",()=>d.remove());d.showModal();}
 (function(){if(lsGet("rc-cookie",null))return;const bar=el("div",{class:"cookie-bar",role:"region","aria-label":"Настройки хранилища"},el("p",{},"Для работы сохраняются вход, программы и настройки. Внешние видео загружаются только с вашего разрешения."),el("div",{class:"bar"},el("button",{type:"button",class:"btn",onclick:()=>cookieSave(false)},"Только необходимые"),el("button",{type:"button",class:"btn",onclick:cookiePreferences},"Настроить")));document.body.append(bar);})();
 // ===== ограниченный ИИ-помощник: фиксированные действия без свободного чата =====
-const AI={status:null,loading:null,review:null,help:null,solution:null,solutions:null,busy:false,panel:null};
+const AI={generation:0,status:null,loading:null,review:null,help:null,solution:null,solutions:null,busy:false,panel:null};
 function aiZeroKey(id){return (ACC.user&&ACC.user.id||"guest")+":"+id;}
 function aiZeroMark(id){if(!id)return;const viewed=lsGet("rc-ai-zero",{});viewed[aiZeroKey(id)]=true;lsSet("rc-ai-zero",viewed);}
 function aiZeroCurrent(){return !!(S.task&&(lsGet("rc-ai-zero",{})[aiZeroKey(S.task.id)]||(AI.status&&Array.isArray(AI.status.solution_views)&&AI.status.solution_views.includes(String(S.task.id)))));}
-function aiReset(){AI.status=null;AI.loading=null;AI.review=null;AI.help=null;AI.solution=null;AI.solutions=null;AI.busy=false;AI.error=null;AI.needPro=false;AI.panel=null;}
+function aiReset(){AI.generation++;AI.status=null;AI.loading=null;AI.review=null;AI.help=null;AI.solution=null;AI.solutions=null;AI.busy=false;AI.error=null;AI.needPro=false;AI.panel=null;}
 async function aiStatus(force){
  if(AI.status&&!force)return AI.status;
  if(AI.loading)return AI.loading;
  if(!ACC.user)return {allowed:false,available:false};
- AI.loading=api("ai/status").then(s=>{AI.status=s;const viewed=lsGet("rc-ai-zero",{});for(const id of s.solution_views||[])viewed[aiZeroKey(id)]=true;lsSet("rc-ai-zero",viewed);return s;}).catch(e=>({allowed:true,available:false,error:e.message})).finally(()=>{AI.loading=null;});
+ const generation=AI.generation;
+ AI.loading=api("ai/status").then(s=>{if(generation!==AI.generation)return {allowed:false,available:false};AI.status=s;const viewed=lsGet("rc-ai-zero",{});for(const id of s.solution_views||[])viewed[aiZeroKey(id)]=true;lsSet("rc-ai-zero",viewed);return s;}).catch(e=>({allowed:true,available:false,error:e.message})).finally(()=>{if(generation===AI.generation)AI.loading=null;});
  return AI.loading;
 }
 function aiProgram(){
