@@ -466,6 +466,13 @@ html[data-home-theme=light] .landing-kicker{color:#456391!important}html[data-ho
 </style>
 <style>.rc-landing .landing-footer{scroll-snap-align:end;scroll-margin-bottom:0}</style>
 <style>
+html.presentation-scroll{scroll-snap-type:none}
+.landing-slide::before{inset:-16% 0;opacity:.8;filter:blur(12px)}
+.landing-slide.slide-seen>div:not(.landing-diagram):not(.slide-controls),.landing-slide.slide-seen>h1,.landing-slide.slide-seen>p{animation:slideReveal 1.15s cubic-bezier(.22,1,.36,1) both}
+@keyframes slideReveal{from{opacity:.25;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.landing-slide *{animation:none!important;transition:none!important}}
+</style>
+<style>
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
