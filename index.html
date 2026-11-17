@@ -473,6 +473,13 @@ html.presentation-scroll{scroll-snap-type:none}
 @media(prefers-reduced-motion:reduce){.landing-slide *{animation:none!important;transition:none!important}}
 </style>
 <style>
+/* Richer ambient colour without distracting motion. */
+.rc-landing .landing-slide::before{opacity:1;filter:blur(16px);background:radial-gradient(ellipse at 82% 38%,#2864ed70,transparent 54%),radial-gradient(ellipse at 16% 82%,#7442c04a,transparent 56%),radial-gradient(ellipse at 48% 12%,#234c8c2b,transparent 60%)}
+.rc-landing .landing-slide:nth-child(2n)::before{background:radial-gradient(ellipse at 18% 38%,#235fce65,transparent 56%),radial-gradient(ellipse at 84% 78%,#7748bc50,transparent 58%),radial-gradient(ellipse at 54% 0%,#245d8b30,transparent 62%)}
+html[data-home-theme=light] .rc-landing .landing-slide::before{background:radial-gradient(ellipse at 82% 38%,#7ba9ff73,transparent 56%),radial-gradient(ellipse at 16% 82%,#b898f05c,transparent 58%),radial-gradient(ellipse at 48% 10%,#addde63b,transparent 62%)}
+html[data-home-theme=light] .rc-landing .landing-slide:nth-child(2n)::before{background:radial-gradient(ellipse at 18% 38%,#82b9f76b,transparent 56%),radial-gradient(ellipse at 84% 78%,#bd9ce965,transparent 58%)}
+</style>
+<style>
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
