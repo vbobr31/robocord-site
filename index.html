@@ -472,13 +472,7 @@ html.presentation-scroll{scroll-snap-type:none}
 @keyframes slideReveal{from{opacity:.25;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.landing-slide *{animation:none!important;transition:none!important}}
 </style>
-<style>
-/* Richer ambient colour without distracting motion. */
-.rc-landing .landing-slide::before{opacity:1;filter:blur(16px);background:radial-gradient(ellipse at 82% 38%,#2864ed70,transparent 54%),radial-gradient(ellipse at 16% 82%,#7442c04a,transparent 56%),radial-gradient(ellipse at 48% 12%,#234c8c2b,transparent 60%)}
-.rc-landing .landing-slide:nth-child(2n)::before{background:radial-gradient(ellipse at 18% 38%,#235fce65,transparent 56%),radial-gradient(ellipse at 84% 78%,#7748bc50,transparent 58%),radial-gradient(ellipse at 54% 0%,#245d8b30,transparent 62%)}
-html[data-home-theme=light] .rc-landing .landing-slide::before{background:radial-gradient(ellipse at 82% 38%,#7ba9ff73,transparent 56%),radial-gradient(ellipse at 16% 82%,#b898f05c,transparent 58%),radial-gradient(ellipse at 48% 10%,#addde63b,transparent 62%)}
-html[data-home-theme=light] .rc-landing .landing-slide:nth-child(2n)::before{background:radial-gradient(ellipse at 18% 38%,#82b9f76b,transparent 56%),radial-gradient(ellipse at 84% 78%,#bd9ce965,transparent 58%)}
-</style>
+
 <style>
 @font-face {
   font-family: 'Manrope';
@@ -11592,7 +11586,10 @@ new MutationObserver(()=>mountPasswordMeters()).observe(document.body,{childList
  const root=document.querySelector('#v-home');if(!root)return;
  const slides=[...root.querySelectorAll('section')],logo=document.querySelector('.brand img');
  const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
- const go=i=>slides[Math.max(0,Math.min(slides.length-1,i))].scrollIntoView({behavior:reduced()?'instant':'smooth',block:'start'});
+ let scrollFrame=0;
+ const cancelScroll=()=>{cancelAnimationFrame(scrollFrame);scrollFrame=0;};
+ window.addEventListener('wheel',cancelScroll,{passive:true});window.addEventListener('touchstart',cancelScroll,{passive:true});
+ const go=i=>{cancelScroll();const target=slides[Math.max(0,Math.min(slides.length-1,i))],from=scrollY,to=target.getBoundingClientRect().top+from;if(reduced()){window.scrollTo({top:to,behavior:'instant'});return;}const start=performance.now(),duration=1150;const tick=now=>{const t=Math.min(1,(now-start)/duration),ease=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;window.scrollTo({top:from+(to-from)*ease,behavior:'instant'});if(t<1)scrollFrame=requestAnimationFrame(tick);};scrollFrame=requestAnimationFrame(tick);};
  const rail=el('nav',{class:'landing-rail','aria-label':'Экраны о проекте'});
  slides.forEach((s,i)=>{
   s.id='intro-screen-'+i;s.classList.add('landing-slide');
