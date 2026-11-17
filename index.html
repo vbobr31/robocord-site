@@ -10305,7 +10305,7 @@ const ssGet=k=>{try{const v=sessionStorage.getItem(k);return v==null?null:JSON.p
 const ssSet=(k,v)=>{try{if(v==null)sessionStorage.removeItem(k);else sessionStorage.setItem(k,JSON.stringify(v));}catch(e){}};
 const ACC={user:lsGet("rc-user",null)||ssGet("rc-user"),token:lsGet("rc-token",null)||ssGet("rc-token")};
 // Запросы независимы: медленный баланс API не должен блокировать вход, задачи и настройки.
-function api(path,opt){return apiRequest(path,opt,ACC.token);}
+async function api(path,opt){if(['login','register/start','reset/start'].includes(path)){const token=await captchaToken();if(token)opt={...opt,body:{...opt?.body,captchaToken:token}};}return apiRequest(path,opt,ACC.token);}
 async function apiRequest(path,opt,token){
  opt=opt||{};const timeout=opt.timeoutMs||(/^ai\/(check|help|solve|solutions|custom)$/.test(path)?90000:15000),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
  try{const r=await fetch(API+"/api/"+path,{method:opt.method||(opt.body?"POST":"GET"),headers:Object.assign({"content-type":"application/json"},token?{authorization:"Bearer "+token}:{}),body:opt.body?JSON.stringify(opt.body):undefined,signal:controller.signal});
@@ -10741,16 +10741,17 @@ async function cabAI(box){
  box.append(el("div",{class:"ai-teacher"},el("b",{},s.available?"ИИ API настроен":"ИИ API требует настройки"),el("span",{class:"hint"},(s.providers||[]).filter(p=>p.has_key).length+" провайдеров с ключом"+(s.workers_ai?" + Workers AI":""))),tokens,f);
  loadUsage();
 }
-let captchaScript=null;
+// Hosted HTTPS challenge also supports native app/file origins.
 async function captchaToken(){
- const config=await apiRequest("security-config",{},null);
- if(!config.captchaEnabled)throw new Error("Регистрация временно недоступна: CAPTCHA ещё не настроена.");
- if(!window.smartCaptcha){if(!captchaScript)captchaScript=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://smartcaptcha.cloud.yandex.ru/captcha.js?render=onload";s.onload=resolve;s.onerror=()=>{captchaScript=null;reject(new Error("Не удалось загрузить CAPTCHA. Проверьте соединение."));};document.head.append(s);});await captchaScript;}
+ const config=await apiRequest('security-config',{},null);if(!config.captchaEnabled)return null;
+ const origin=new URL(API||location.origin).origin;
  return new Promise((resolve,reject)=>{
-  const host=el("div"),box=el("div",{class:"rc-confirm",role:"dialog","aria-modal":"true","aria-label":"CAPTCHA"}),cancel=el("button",{class:"btn",type:"button"},"Отмена");let widget;
-  const finish=(token)=>{if(widget!==undefined)window.smartCaptcha.destroy(widget);box.remove();token?resolve(token):reject(new Error("Проверка отменена."));};
-  cancel.onclick=()=>finish(null);box.append(el("div",{class:"rc-confirm-box"},el("h3",{},"Подтвердите, что вы человек"),host,cancel));document.body.append(box);
-  try{widget=window.smartCaptcha.render(host,{sitekey:config.captchaSiteKey,callback:token=>finish(token)});}catch{finish(null);}
+  const frame=el('iframe',{src:origin+'/api/turnstile-challenge',title:'Cloudflare Turnstile',style:'border:0;width:100%;height:250px',sandbox:'allow-scripts allow-same-origin'});
+  const box=el('dialog',{class:'cookie-settings'},el('h2',{},'Проверка CAPTCHA'),frame,el('button',{type:'button',class:'btn',onclick:()=>finish(null)},'Отмена'));
+  const timer=setTimeout(()=>finish(null),120000);let settled=false;
+  function finish(token){if(settled)return;settled=true;clearTimeout(timer);window.removeEventListener('message',receive);box.close();box.remove();token?resolve(token):reject(new Error('Проверка CAPTCHA отменена или истекла.'));}
+  function receive(e){if(e.origin===origin&&e.source===frame.contentWindow&&e.data?.kind==='robocord-captcha'&&typeof e.data.token==='string')finish(e.data.token);}
+  box.addEventListener('cancel',e=>{e.preventDefault();finish(null);});window.addEventListener('message',receive);document.body.append(box);box.showModal();
  });
 }
 // ===== Регистрация по почте (код из письма) и «Забыли пароль?» =====
