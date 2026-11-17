@@ -459,6 +459,12 @@ html[data-home-theme=light] .landing-lead,html[data-home-theme=light] .landing-s
 html[data-home-theme=light] .landing-kicker{color:#456391!important}html[data-home-theme=light] .landing-link{color:#173966!important;background:#ffffff70;border-color:#8aadd155}html[data-home-theme=light] .landing-actions .landing-link:first-child{background:#173f7b;color:#fff!important}html[data-home-theme=light] .slide-controls button{color:#173966;background:#fff8;border-color:#8ca8cf70}html[data-home-theme=light] .slide-controls a,html[data-home-theme=light] .landing-footer a,html[data-home-theme=light] .landing-footer button{color:#244a81}html[data-home-theme=light] .landing-rail button[aria-current=step]::after{background:#1459d9}html[data-home-theme=light] .landing-diagram text{fill:#244a81}html[data-home-theme=light] .presentation-home .preference-group button{color:#1b3559}html[data-home-theme=light] .presentation-home .rc-menu summary{color:#173966!important}html[data-home-theme=light] .language-note{color:#405a80}
 @media(max-width:600px){.presentation-home .top .wrap{padding:12px 12px!important}.top-preferences{gap:6px;margin-right:3px}.preference-group button{min-width:30px;padding:4px 7px}.preference-group button span:last-child{display:none}.slide-brand{top:25px;left:20px;font-size:12px;gap:5px}.slide-brand img{width:27px;height:25px}.top-preferences .preference-group{padding:2px}.presentation-home .rc-menu summary{min-width:32px}}
 </style>
+
+<style>
+.hamburger{display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;width:22px;height:22px}.hamburger i{display:block;width:19px;height:1.6px;border-radius:2px;background:currentColor}.rc-menu summary{letter-spacing:normal}.landing-footer{display:grid;grid-template-columns:1fr auto;align-items:center;gap:22px 30px;border-top:1px solid #7699d32b}.landing-socials{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end}.landing-footer .landing-social{padding:11px 17px;border:1px solid #92b4ec38;border-radius:999px;text-decoration:none;font:600 13px 'Manrope',sans-serif;color:#e1ebfd}.landing-social:hover{background:#8ca9d322}.landing-social.unavailable{color:#91a2bf;cursor:default}.landing-copyright{color:#a6b7d1;font-size:13px}.landing-footer>.language-note{grid-column:1/-1}.landing-footer>button{text-align:left;padding:0}.landing-footer>a{font-size:13px}html[data-home-theme=light] .landing-footer .landing-social{color:#244a81;border-color:#496e9e45}html[data-home-theme=light] .landing-copyright,html[data-home-theme=light] .landing-social.unavailable{color:#516984}
+@media(max-width:600px){.landing-footer{grid-template-columns:1fr}.landing-socials{justify-content:flex-start}.landing-socials .landing-social{padding:10px 14px}}
+</style>
+<style>.rc-landing .landing-footer{scroll-snap-align:end;scroll-margin-bottom:0}</style>
 <style>
 @font-face {
   font-family: 'Manrope';
@@ -9922,6 +9928,8 @@ const SOC=[["link_vk","ВКонтакте","vk"],["link_tg","Telegram","tg"],["l
 async function footerShow(){const f=$("#siteFoot");if(!f)return;let s={};try{s=await api("settings");}catch(e){}
  // в href попадают только https:// и mailto: — даже если в базе осталась старая ссылка другого вида
  for(const k of ["link_vk","link_tg","link_max","link_support"])if(s[k]&&!/^(https:\/\/|mailto:)/i.test(s[k]))s[k]="";
+ const socials=document.querySelector('.landing-socials');
+ if(socials){socials.replaceChildren(...SOC.map(([k,n,c])=>s[k]?el("a",{class:"landing-social",href:s[k],target:"_blank",rel:"noopener noreferrer","aria-label":n},n):el("span",{class:"landing-social unavailable","aria-label":n+" — ссылка пока не добавлена",title:"Ссылка пока не добавлена"},n)));}
  f.textContent="";
  const icon=k=>el("span",{class:"soc soc-"+k},k==="vk"?"VK":k==="tg"?"TG":"MAX");
  f.append(el("div",{class:"wrap footin"},el("p",{},s.footer_text||"© 2026 РобоКорд. Образовательная платформа по робототехнике."),
@@ -11057,7 +11065,7 @@ new MutationObserver(()=>mountPasswordMeters()).observe(document.body,{childList
 // Compact navigation and persistent theme, without changing field/sensor colours.
 (function(){
  const nav=document.querySelector("#nav");if(!nav)return;document.querySelector("#navMore")?.remove();nav.querySelector("#navAcc")?.classList.remove("nm");
- const menu=el("details",{class:"rc-menu"}),summary=el("summary",{"aria-label":"Открыть меню разделов",title:"Меню"},"•••"),panel=el("div",{class:"rc-menu-panel"});
+ const menu=el("details",{class:"rc-menu"}),summary=el("summary",{"aria-label":"Открыть меню разделов",title:"Меню"},el("span",{class:"hamburger","aria-hidden":"true"},el("i"),el("i"),el("i"))),panel=el("div",{class:"rc-menu-panel"});
  for(const a of [...nav.children]){panel.append(a);}
  panel.append(el("button",{type:"button",class:"btn",onclick:()=>{menu.open=false;cookiePreferences();}},"Настройки cookies"));menu.append(summary,panel);nav.append(menu);panel.addEventListener("click",e=>{if(e.target.closest("a"))menu.open=false;});document.addEventListener("keydown",e=>{if(e.key==="Escape")menu.open=false;});
 })();
@@ -11069,7 +11077,7 @@ new MutationObserver(()=>mountPasswordMeters()).observe(document.body,{childList
  root.append(intro);
  const sections=[['01','Ваше место в проекте','Начните с аккаунта','Сохраняйте решения и возвращайтесь к занятиям. Учитель организует работу класса, ученик выполняет задания и видит результат.','Регистрация и вход','#profile'],['02','Программирование','Команда. Запуск. Результат.','Соберите алгоритм из блоков или работайте с учебным C++. В лаборатории видно, как программа изменяет движение робота.','Открыть программирование','#sim'],['03','Практика','У каждой задачи есть проверяемая цель','Прохождение маршрута, работа датчиков, захват и перенос предметов. Меняйте алгоритм и сравнивайте результаты запусков.','Выбрать задачу','#tasks'],['04','Курсы','Разбирайтесь шаг за шагом','Модули, теория, практические задания и вопросы для самопроверки. Курсы преподавателей дополняют встроенную программу обучения.','Перейти к курсам','#course'],['05','Свои эксперименты','Создайте условия проверки','Выбирайте карту, меняйте расположение объектов и проверяйте устойчивость решения. Работа с физическим набором доступна в приложении и зависит от модели устройства.','Открыть карты','#maps'],['06','Дальше — больше','Выберите подходящий доступ','Бесплатный режим — VEX IQ первого и второго поколения и задачи из банка. Pro расширяет доступ к поддерживаемым наборам и ИИ-возможностям.','Возможности и приложения','#plan']];
  for(const [num,kicker,title,desc,cta,href] of sections)root.append(el('section',{class:'landing-section'},el('div',{class:'landing-index'},num),el('div',{},el('p',{class:'landing-kicker'},kicker),el('h2',{},title),el('p',{},desc),link(cta,href))));
- root.append(el('footer',{class:'landing-footer'},el('span',{},'RoboCord · Учиться через эксперимент'),el('a',{href:'#legal/privacy'},'Конфиденциальность'),el('button',{type:'button',onclick:()=>cookiePreferences()},'Настройки cookies')));
+ root.append(el('footer',{class:'landing-footer'},el('span',{class:'landing-copyright'},'© 2026 RoboCord'),el('nav',{class:'landing-socials','aria-label':'Социальные сети'},el('span',{class:'social-loading'},'Социальные сети')), el('a',{href:'#legal/privacy'},'Конфиденциальность'),el('button',{type:'button',onclick:()=>cookiePreferences()},'Настройки cookies')));
 })();
 // Presentation navigation respects native scrolling and reduced-motion preferences.
 (function(){
@@ -11107,7 +11115,7 @@ new MutationObserver(()=>mountPasswordMeters()).observe(document.body,{childList
  const bindings=[];const bind=(node,en)=>{if(node)bindings.push({node,ru:node.textContent,en});};
  slides.forEach((s,i)=>{bind(s.querySelector('.landing-kicker'),english[i][0]);bind(s.querySelector('h1,h2'),english[i][1]);bind(s.querySelector('.landing-lead')||s.querySelector('div:not(.landing-index) > p:not(.landing-kicker)'),english[i][2]);});
  const ctas=['Get started ↗','Open the lab ↗','Sign up / Sign in ↗','Start programming ↗','Choose a task ↗','Explore courses ↗','Open fields ↗','Plans and apps ↗'];root.querySelectorAll('.landing-link').forEach((n,i)=>bind(n,ctas[i]));
- bind(root.querySelector('.landing-scroll'),'Scroll down to explore ↓');bind(root.querySelector('.landing-footer span'),'RoboCord · Learn through experiments');bind(root.querySelector('.landing-footer a'),'Privacy');bind(root.querySelector('.landing-footer button'),'Cookie settings');
+ bind(root.querySelector('.landing-scroll'),'Scroll down to explore ↓');bind(root.querySelector('.landing-copyright'),'© 2026 RoboCord');bind(root.querySelector('.landing-footer a'),'Privacy');bind(root.querySelector('.landing-footer button'),'Cookie settings');
  const names={home:'About',course:'Courses',sim:'Programming',tasks:'Tasks',maps:'Fields',plan:'Plans',profile:'Profile',cab:'Teaching',logout:'Sign out'};
  nav.querySelectorAll('a[data-v]').forEach(n=>bind(n,names[n.dataset.v]||n.textContent));
  bind(nav.querySelector('.rc-menu-panel button'),'Cookie settings');
