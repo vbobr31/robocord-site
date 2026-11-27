@@ -14,7 +14,7 @@
   <header class="topbar">
     <a class="brand" href="#top" aria-label="RoboCord, начало страницы"><img src="./assets/logo.png" alt="" width="42" height="42"><span>Robo<span>Cord</span></span></a>
     <nav aria-label="Разделы страницы">
-      <a href="#problem">Проблема</a><a href="#solution">Решение</a><a href="#results">Результат</a><a href="#creative">Видео</a><a href="#team">Команда</a>
+      <a href="#problem">Проблема</a><a href="#solution">Платформа</a><a href="#results">Результат</a><a href="#creative">Видео</a><a href="#team">Автор</a>
     </nav>
     <a class="top-link" href="https://www.robocord.site/" target="_blank" rel="noopener">Открыть платформу ↗</a>
   </header>
@@ -26,7 +26,7 @@
           <p class="eyebrow"><span class="dot"></span> Проект для ярмарки «Точка вдохновения»</p>
           <h1>RoboCord<span class="period">.</span></h1>
           <p class="hero-line">От алгоритма — к действию робота.</p>
-          <p class="lead">Образовательная платформа, где ученик получает задачу, составляет программу, наблюдает движение и сам находит причину ошибки.</p>
+          <p class="lead">Задачи, программирование, цифровое поле и симулятор в одной учебной среде. Ученик видит, что сделал робот, и проверяет, почему его алгоритм сработал именно так.</p>
           <div class="hero-actions"><a class="btn primary" href="#solution">Как это работает <span aria-hidden="true">↘</span></a><a class="btn ghost" href="#creative">Смотреть ролик</a></div>
           <div class="meta"><span>Бобрышев Владимир</span><span>Курск</span><span>Программный прототип · 2026</span></div>
         </div>
@@ -41,7 +41,7 @@
 
     <section class="section light" id="problem"><div class="wrap">
       <div class="section-head"><span class="number">01 / ЗАЧЕМ</span><h2>Ошибку нужно увидеть,<br><em>чтобы её исправить.</em></h2></div>
-      <div class="two-col"><p class="large">В робототехнике программа, датчики, карта и реальное движение связаны между собой. Когда робот поворачивает не туда, по одному коду трудно понять, что именно пошло не так.</p><div class="aside"><span class="aside-line"></span><p>Физических наборов в группе может быть меньше, чем учеников. Виртуальная проверка даёт возможность повторить опыт до выхода на поле. Её учебную пользу ещё предстоит измерить на занятиях.</p></div></div>
+      <div class="two-col"><p class="large">В робототехнике программа, датчики, карта и движение связаны между собой. Когда робот поворачивает не туда, по одному коду трудно понять причину ошибки.</p><div class="aside"><span class="aside-line"></span><p>Например, робот должен остановиться перед стеной. Он может не заметить её из-за неверного порога датчика, слишком высокой скорости или ошибки в условии. В RoboCord можно увидеть показания и повторить запуск после исправления.</p></div></div>
       <div class="audience"><strong>Для кого</strong><span>Ученики 5–11 классов</span><span>Педагоги и кружки</span><span>Образовательные организации</span></div>
     </div></section>
 
@@ -53,28 +53,36 @@
         <article><span>03</span><h3>Проверить</h3><p>Запустить робота в симуляции, наблюдать показания датчиков и момент ошибки.</p></article>
         <article><span>04</span><h3>Исправить и сохранить</h3><p>Изменить алгоритм, повторить опыт и сохранить карту с программой в формате .robocord.</p></article>
       </div>
-      <p class="section-foot">Симуляция выполняется на устройстве. Подключение физического робота зависит от конкретного адаптера и требует отдельной проверки на оборудовании.</p>
+      <p class="section-foot">Каждый шаг симуляции вычисляется на устройстве, без отдельного запроса к ИИ. Физический робот подключается через адаптер конкретного набора; его работу необходимо проверять на оборудовании.</p>
+      <div class="example-card"><div><span class="kicker">ПРИМЕР УЧЕБНОГО ЭКСПЕРИМЕНТА</span><h3>Робот не остановился перед препятствием</h3></div><ol><li><strong>Наблюдение:</strong> расстояние на датчике уменьшается, но моторы продолжают работать.</li><li><strong>Проверка:</strong> ученик сравнивает показание с условием остановки и проверяет выбранный порог.</li><li><strong>Исправление:</strong> меняет условие или скорость и повторяет тот же запуск на том же поле.</li></ol></div>
     </div></section>
 
     <section class="section light" id="results"><div class="wrap">
       <div class="section-head"><span class="number">03 / ЧТО УЖЕ СДЕЛАНО</span><h2>Прототип можно<br><em>проверить.</em></h2></div>
       <div class="stats"><div><strong>90</strong><span>учебных задач<br>в 8 категориях</span></div><div><strong>5</strong><span>виртуальных моделей<br>для практики</span></div><div><strong>1</strong><span>файл .robocord<br>для карты и программы</span></div></div>
-      <div class="evidence"><div class="evidence-image"><img src="./assets/cad.webp" alt="Экран конструктора RoboCord с демонстрационной 3D-сборкой" loading="lazy"></div><div class="evidence-copy"><p class="kicker">ДЕМОНСТРАЦИЯ ПРОТОТИПА</p><h3>От учебной карты до 3D-сборки</h3><p>В прототипе есть задания, блочный редактор, текстовые режимы, поле, симулятор, курсы и кабинет преподавателя. CAD/VR-мастерская демонстрирует направление развития сборки; точность геометрии набора и управление в VR требуют испытаний.</p><a class="inline-link" href="https://www.robocord.site/" target="_blank" rel="noopener">Открыть действующую платформу ↗</a></div></div>
+      <div class="evidence"><div class="evidence-image"><img src="./assets/cad.webp" alt="Экран RoboCord: каталог деталей и 3D-сборка учебного робота" loading="lazy"></div><div class="evidence-copy"><p class="kicker">ДЕМОНСТРАЦИЯ ПРОТОТИПА</p><h3>Редактор, симулятор и мастерская</h3><p>В платформе доступны блоки Blockly и учебные текстовые режимы JavaScript, C++ и Arduino. Карта содержит линии, стены, цветовые зоны и объекты; симулятор показывает движение и состояние датчиков. Своя карта вместе с программой сохраняется в файле .robocord.</p><p>Отдельный экран посвящён 3D-сборке. На изображении — работающая мастерская с каталогом деталей. Точность моделей и действия в VR ещё проверяются отдельно.</p><a class="inline-link" href="https://www.robocord.site/" target="_blank" rel="noopener">Открыть действующую платформу ↗</a></div></div>
+      <div class="facts-grid"><article><h3>Курс и задачи</h3><p>Задания распределены по темам и уровням. Учебные материалы переходят от движения к циклам, условиям и датчикам; курс можно дополнять.</p></article><article><h3>Кабинет преподавателя</h3><p>Учитель создаёт несколько классов, назначает работы и видит результаты своих учеников. Регистрация работает через код, который приходит на электронную почту.</p></article><article><h3>Формат программы</h3><p>JavaScript и C++ исполняются в пределах поддерживаемых учебных конструкций. Скетч Arduino использует C++ и команды для платы. Произвольные внешние библиотеки не заявляются.</p></article><article><h3>Файл .robocord</h3><p>В одном файле переносятся карта, программа и настройки. Так ученик может сохранить эксперимент и открыть его позже.</p></article></div>
+    </div></section>
+
+    <section class="section compare-section" id="compare"><div class="wrap">
+      <div class="section-head"><span class="number">04 / КОНТЕКСТ</span><h2>Что делают другие<br><em>учебные среды.</em></h2></div>
+      <div class="compare-grid"><article><h3>VEXcode VR</h3><p>Программирование виртуального VEX-робота на готовых полях. Сильная сторона — цельная среда для задач VEX.</p></article><article><h3>Open Roberta Lab</h3><p>Блочное программирование поддерживаемых роботов и симуляция. Набор команд зависит от выбранной системы.</p></article><article><h3>Tinkercad Circuits</h3><p>Моделирование Arduino и электронных схем. Прохождение трассы мобильным роботом не является его основной задачей.</p></article><article class="ours"><h3>RoboCord</h3><p>Один маршрут от задания и собственной карты до программы, показаний датчиков, сохранённого файла и просмотра работы преподавателем.</p></article></div>
+      <p class="compare-note">Это сравнение учебных сценариев, а не заявление о превосходстве по всем функциям. Возможности физического подключения RoboCord зависят от выбранного набора.</p>
     </div></section>
 
     <section class="section dark" id="creative"><div class="wrap">
-      <div class="section-head"><span class="number">04 / ТВОРЧЕСКИЙ ПРОДУКТ</span><h2>Когда алгоритм<br><em>оживает.</em></h2></div>
+      <div class="section-head"><span class="number">05 / ТВОРЧЕСКИЙ ПРОДУКТ</span><h2>Когда алгоритм<br><em>оживает.</em></h2></div>
       <div class="creative-grid"><div><p class="large">Идея ролика — показать путь ученика через образ робота: от первого движения и ошибки к пониманию, почему команда сработала именно так.</p><p>Анимация выбрана как понятный язык для школьников. Она помогает заинтересовать зрителя, а технические возможности платформы подтверждаются отдельно на работающем прототипе.</p><p class="caption">Форма: короткий анимационный ролик. Для подготовки использованы цифровая анимация и элементы фирменного стиля RoboCord.</p></div><div class="video-shell"><video controls preload="metadata" playsinline poster="./assets/video-poster.webp" aria-label="Анимационный ролик RoboCord"><source src="./assets/inspiration.mp4" type="video/mp4">Ваш браузер не поддерживает видео.</video><span class="video-label">СМОТРЕТЬ · 45 СЕКУНД</span></div></div>
     </div></section>
 
     <section class="section light" id="plan"><div class="wrap">
-      <div class="section-head"><span class="number">05 / ПЛАН И РЕСУРСЫ</span><h2>Следующий шаг —<br><em>учебное испытание.</em></h2></div>
-      <div class="timeline"><div><span>СДЕЛАНО</span><h3>Программный прототип</h3><p>Редакторы, задачи, симуляция, карта, аккаунты и учебные материалы. Проверены технические сценарии.</p></div><div><span>ДО 31.01.2027</span><h3>Приёмка и пилот</h3><p>12 технических сценариев и два учебных занятия не менее чем с десятью учениками. Целевой показатель — 80% самостоятельных завершений; это пока цель, не результат.</p></div><div><span>ДАЛЬШЕ</span><h3>Физические наборы и конструктор</h3><p>Испытания на конкретных роботах, развитие адаптеров, датчиков, 3D-сборки и видеоинструкций.</p></div></div>
-      <div class="resources"><strong>Ресурсы</strong><p>Веб-клиент, локальный симулятор, серверная инфраструктура Cloudflare, учебные поля, тестовые наборы, графические и видеоматериалы проекта. Работа на физическом оборудовании проверяется отдельно.</p></div>
+      <div class="section-head"><span class="number">06 / ЭТАПЫ И РЕСУРСЫ</span><h2>Что сделано.<br><em>Что проверяется.</em></h2></div>
+      <div class="timeline"><div><span>ПРОТОТИП</span><h3>Платформа работает</h3><p>Редакторы, задачи, симулятор, собственные карты, учётные записи, классы и учебные материалы собраны в одном продукте.</p></div><div><span>ТЕХНИЧЕСКАЯ ПРОВЕРКА</span><h3>Сценарии и масштаб</h3><p>Проверены программные сценарии; для одного известного графа линии маршрут испытан в симуляции при масштабах 85, 100 и 130 %.</p></div><div><span>УЧЕБНАЯ ПРОВЕРКА</span><h3>Пилот ещё впереди</h3><p>До 31 января 2027 года намечены 12 сценариев приёмки и два занятия с десятью учениками. Учебный эффект пока не измерен.</p></div></div>
+      <div class="resources"><strong>Ресурсы</strong><p>Веб-клиент, локальный симулятор, Cloudflare Workers и D1, учебные поля и тестовые наборы. Переход к физическому роботу требует настройки адаптера и испытания на конкретном устройстве.</p></div>
     </div></section>
 
     <section class="section bottom" id="team"><div class="wrap">
-      <div class="section-head"><span class="number">06 / АВТОР И ИСТОЧНИКИ</span><h2>RoboCord — проект<br><em>Бобрышева Владимира.</em></h2></div>
+      <div class="section-head"><span class="number">07 / АВТОР И ИСТОЧНИКИ</span><h2>RoboCord — проект<br><em>Бобрышева Владимира.</em></h2></div>
       <div class="bottom-grid"><div><p>Автор разрабатывает программный прототип, учебный сценарий и материалы демонстрации. Данные наставника будут внесены в конкурсную заявку и на страницу после подтверждения его участия.</p><p class="contact">Курск · <a href="https://www.robocord.site/" target="_blank" rel="noopener">www.robocord.site ↗</a></p></div><div><h3>Источники и материалы</h3><ol><li><a href="https://expotechjunior.ru/inspiration_point" target="_blank" rel="noopener">«Точка вдохновения»: страница конкурса</a></li><li><a href="https://disk.yandex.ru/i/tKNtdREkOqdu2g" target="_blank" rel="noopener">Положение о ярмарке</a></li><li><a href="https://www.robocord.site/" target="_blank" rel="noopener">RoboCord: действующий прототип</a></li><li><a href="https://www.vexrobotics.com/vexcode/vr" target="_blank" rel="noopener">VEXcode VR</a>; <a href="https://lab.open-roberta.org/" target="_blank" rel="noopener">Open Roberta Lab</a> — среды для сопоставления учебных сценариев</li></ol></div></div>
     </div></section>
   </main>
